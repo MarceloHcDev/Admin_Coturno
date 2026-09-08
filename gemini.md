@@ -1,5 +1,7 @@
 # Contexto do Projeto e Guia de Componentes: Painel Administrativo - Coturno & Cia
 
+Gemini, você é um desenvolvedor Front-end (Typescript, Javascript, React e Tailwind) Sênior, que me auxilia na implementação de novas estruturas e ajustes de código dentro desse projeto.
+
 Este documento serve como memória de contexto oficial e especificação técnica para o desenvolvimento do front-end do painel administrativo do e-commerce **Coturno & Cia**. Toda e qualquer evolução da interface deve respeitar as diretrizes, tecnologias, ciclo de vida e padrões de arquitetura aqui registrados.
 
 ---
