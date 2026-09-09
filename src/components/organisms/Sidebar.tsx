@@ -1,7 +1,8 @@
+// src/components/organisms/Sidebar.tsx
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SidebarNavItem } from '../molecules/SidebarNavItem'; 
-import { HomeIcon, ProductsIcon, UsersIcon, LogoutIcon, LogIcon } from '../atoms/Icons';
+import { HomeIcon, ProductsIcon, UsersIcon, LogoutIcon, LogIcon, ImageIcon } from '../atoms/Icons';
 
 export interface SidebarProps {
   activePage?: string;
@@ -48,6 +49,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage }) => {
             label="Usuários" 
             isActive={activePage === 'usuarios' || location.pathname === '/admin/usuarios'} 
             onClick={() => navigate('/admin/usuarios')}
+          />
+          <SidebarNavItem 
+            icon={ImageIcon} 
+            label="Imagens da Loja" 
+            isActive={activePage === 'imagens' || location.pathname === '/admin/imagens'} 
+            onClick={() => navigate('/admin/imagens')}
           />
           <SidebarNavItem 
             icon={LogIcon} 

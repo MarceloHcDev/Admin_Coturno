@@ -31,3 +31,37 @@ export interface LogEvento {
   ip: string;
   tipoStatus: 'Sucesso' | 'Alerta' | 'Erro';
 }
+
+
+export interface PageHeaderProps {
+  title: string;
+  subtitle?: string;
+  onActionClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  hideButton?: boolean;
+  buttonClassName?: string;
+}
+
+export interface MetricCardData {
+  id: string | number;
+  title: string;
+  value: string | number;
+  percentageChange?: number;
+  isPositive?: boolean;
+}
+
+export interface LogEvent {
+  id: string | number;
+  usuario: string;
+  acao: string;
+  dataHora: string;
+  detalhes?: string;
+}
+
+// Novos tipos para a Gestão de Imagens da Loja Virtual
+export interface StoreImageSection {
+  id: string;
+  title: string;
+  description: string;
+  currentImageUrl?: string;
+  recommendedSize?: string;
+}
