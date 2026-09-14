@@ -193,17 +193,28 @@ export default function UsuariosGestao(): React.JSX.Element {
                     <label className="text-sm font-medium text-slate-600">CPF</label>
                     <input
                       type="text"
-                      className="p-2 border border-slate-200 rounded-lg"
+                      className={`p-2 border rounded-lg ${
+                        formMode === 'edit'
+                          ? 'border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed'
+                          : 'border-slate-200'
+                      }`}
                       value={formData.cpf || ''}
                       onChange={(e) => {
+                        if (formMode === 'edit') return;
                         const formatted = formatCpf(e.target.value);
                         setFormData({ ...formData, cpf: formatted });
                       }}
                       maxLength={14} // 11 números + 2 pontos + 1 hífen
                       inputMode="numeric"
                       placeholder="000.000.000-00"
+                      disabled={formMode === 'edit'}
                       required
                     />
+                    {formMode === 'edit' && (
+                      <span className="text-xs text-slate-400">
+                        O CPF não pode ser alterado após o cadastro.
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col space-y-1">
                       <label className="text-sm font-medium text-slate-600">CEP</label>
