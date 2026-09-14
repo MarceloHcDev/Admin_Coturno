@@ -12,6 +12,7 @@ export interface UserItem {
   email: string;
   phone?: string;
   cpf?: string;
+  cep?: string;
   type?: string;
   role?: string;
   provider?: string;
@@ -40,11 +41,40 @@ export default function UsuariosGestao(): React.JSX.Element {
     email: '',
     phone: '',
     cpf: '',
+    cep: '',
     type: 'Cliente',
     provider: 'Email/Senha',
     status: 'Ativo',
     createdAt: ''
   });
+
+  const formatCep = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 8); // só números, máximo 8
+    if (digits.length <= 5) return digits;
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  };
+
+  const formatCpf = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11); // só números, máximo 11
+
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  };
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11); // só números, máximo 11
+
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
+  const isValidEmail = (value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value);
+  };
 
   const handleEdit = (id: number | string): void => {
     const user = users.find(u => u.id === id);
@@ -62,7 +92,8 @@ export default function UsuariosGestao(): React.JSX.Element {
       lastName: '', 
       email: '', 
       phone: '', 
-      cpf: '', 
+      cpf: '',
+      cep: '', 
       type: 'Cliente', 
       provider: 'Email/Senha', 
       status: 'Ativo', 
@@ -96,7 +127,7 @@ export default function UsuariosGestao(): React.JSX.Element {
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800 antialiased pt-10 pe-5">
       <Sidebar activePage="usuarios" />
 
-      <main className="pl-72 flex-1">
+      <main className= "pl-72 flex-1">
         <div className="max-w-7xl mx-auto space-y-6">
           
           <PageHeader_usuario
@@ -126,16 +157,69 @@ export default function UsuariosGestao(): React.JSX.Element {
                   </div>
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-slate-600">E-mail</label>
-                    <input type="email" className="p-2 border border-slate-200 rounded-lg" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+                    <input
+                      type="email"
+                      className={`p-2 border rounded-lg ${
+                        formData.email && !isValidEmail(formData.email)
+                          ? 'border-red-400'
+                          : 'border-slate-200'
+                      }`}
+                      value={formData.email || ''}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value.trim().toLowerCase() })}
+                      placeholder="seuemail@exemplo.com"
+                      required
+                    />
+                    {formData.email && !isValidEmail(formData.email) && (
+                      <span className="text-xs text-red-500">Digite um e-mail válido</span>
+                    )}
                   </div>
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-slate-600">Telefone</label>
-                    <input type="text" className="p-2 border border-slate-200 rounded-lg" value={formData.phone || ''} onChange={(e) => setFormData({...formData, phone: e.target.value})} required />
+                    <input
+                      type="text"
+                      className="p-2 border border-slate-200 rounded-lg"
+                      value={formData.phone || ''}
+                      onChange={(e) => {
+                        const formatted = formatPhone(e.target.value);
+                        setFormData({ ...formData, phone: formatted });
+                      }}
+                      maxLength={15} // (xx) xxxxx-xxxx
+                      inputMode="numeric"
+                      placeholder="(00) 00000-0000"
+                      required
+                    />
                   </div>
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-slate-600">CPF</label>
-                    <input type="text" className="p-2 border border-slate-200 rounded-lg" value={formData.cpf || ''} onChange={(e) => setFormData({...formData, cpf: e.target.value})} required />
+                    <input
+                      type="text"
+                      className="p-2 border border-slate-200 rounded-lg"
+                      value={formData.cpf || ''}
+                      onChange={(e) => {
+                        const formatted = formatCpf(e.target.value);
+                        setFormData({ ...formData, cpf: formatted });
+                      }}
+                      maxLength={14} // 11 números + 2 pontos + 1 hífen
+                      inputMode="numeric"
+                      placeholder="000.000.000-00"
+                      required
+                    />
                   </div>
+                  <div className="flex flex-col space-y-1">
+                      <label className="text-sm font-medium text-slate-600">CEP</label>
+                      <input
+                        type="text"
+                        className="p-2 border border-slate-200 rounded-lg"
+                        value={formData.cep || ''}
+                        onChange={(e) => {
+                          const formatted = formatCep(e.target.value);
+                          setFormData({ ...formData, cep: formatted });
+                        }}
+                        maxLength={9} // 8 números + 1 hífen
+                        inputMode="numeric"
+                        placeholder="00000-000"
+                      />
+                    </div>
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-slate-600">Tipo de Usuário</label>
                     <select className="p-2 border border-slate-200 rounded-lg bg-white" value={formData.type || 'Cliente'} onChange={(e) => setFormData({...formData, type: e.target.value})}>

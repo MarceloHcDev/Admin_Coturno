@@ -10,6 +10,7 @@ export interface UserItem {
   email: string;
   phone: string;
   cpf: string;
+  cep: string;
   type: 'Administrador' | 'Cliente' | string;
   provider: string;
   status: 'Ativo' | 'Inativo' | string;
@@ -61,6 +62,7 @@ export const UserTable: React.FC<UserTableProps> = ({
             <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-400 font-sans">Usuário</th>
             <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-400 font-sans">Contato</th>
             <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-400 font-sans">CPF</th>
+            <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-400 font-sans">CEP</th>
             <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-400 font-sans">Tipo</th>
             <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-400 font-sans">Provedor</th>
             <th className="py-4 px-6 text-xs font-semibold uppercase tracking-wider text-slate-400 font-sans">Status</th>
@@ -90,6 +92,9 @@ export const UserTable: React.FC<UserTableProps> = ({
                 
                 {/* CPF */}
                 <td className="py-4 px-6 text-slate-600">{user.cpf}</td>
+                
+                {/* CEP */}
+                <td className="py-4 px-6 text-slate-600">{user.cep}</td>
                 
                 {/* Tipo de Usuário (Badge) */}
                 <td className="py-4 px-6">
