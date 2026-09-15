@@ -13,6 +13,11 @@ export interface UserItem {
   phone?: string;
   cpf?: string;
   cep?: string;
+  sreet?: string; // rua
+  sreet_number?: string; //número da rua
+  block?: string; //bairro
+  city?: string; //cidade
+  state?: string; //estado
   type?: string;
   role?: string;
   provider?: string;
@@ -22,11 +27,19 @@ export interface UserItem {
 
 type FormMode = 'create' | 'edit' | null;
 
+const BRAZILIAN_STATES = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+  'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+  'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+];
+
 const initialUsers: UserItem[] = [
-  { id: 1, firstName: 'João', lastName: 'Silva', email: 'joao.silva@email.com', phone: '(11) 98765-4321', cpf: '123.456.789-00', type: 'Cliente', provider: 'Google', status: 'Ativo', createdAt: '15/03/2026' },
-  { id: 2, firstName: 'Maria', lastName: 'Santos', email: 'maria.santos@email.com', phone: '(21) 91234-5678', cpf: '987.654.321-00', type: 'Cliente', provider: 'Email/Senha', status: 'Ativo', createdAt: '10/02/2026' },
-  { id: 3, firstName: 'Pedro', lastName: 'Oliveira', email: 'pedro.oliveira@email.com', phone: '(31) 99999-8888', cpf: '456.789.123-00', type: 'Administrador', provider: 'Google', status: 'Ativo', createdAt: '05/01/2026' },
-  { id: 4, firstName: 'Ana', lastName: 'Costa', email: 'ana.costa@email.com', phone: '(41) 97777-6666', cpf: '789.123.456-00', type: 'Cliente', provider: 'Email/Senha', status: 'Inativo', createdAt: '28/04/2026' },
+  { id: 1, firstName: 'João', lastName: 'Silva', email: 'joao.silva@email.com', phone: '(11) 98765-4321', cpf: '123.456.789-00', cep: '12335-544', sreet: 'Rua Joaquim Barbosa', sreet_number: '23', block: 'Olaria', city: 'Rio de Janeiro', state: 'RJ', type: 'Cliente', provider: 'Google', status: 'Ativo', createdAt: '15/03/2026' },
+  { id: 2, firstName: 'Maria', lastName: 'Santos', email: 'maria.santos@email.com', phone: '(21) 91234-5678', cpf: '987.654.321-00', cep: '78989-999', sreet: 'Rua São Francisco', sreet_number: '7', block: 'Catete', city: 'Rio de Janeiro', state: 'RJ', type: 'Cliente', provider: 'Email/Senha', status: 'Ativo', createdAt: '10/02/2026' },
+  { id: 3, firstName: 'Pedro', lastName: 'Oliveira', email: 'pedro.oliveira@email.com', phone: '(31) 99999-8888', cpf: '456.789.123-00', cep: '32323-223', sreet: 'Rua Reginaldo Rossi', sreet_number: '78', block: 'Flamengo', city: 'Rio de Janeiro', state: 'RJ', type: 'Administrador', provider: 'Google', status: 'Ativo', createdAt: '05/01/2026' },
+  { id: 4, firstName: 'Ana', lastName: 'Costa', email: 'ana.costa@email.com', phone: '(41) 97777-6666', cpf: '789.123.456-00', cep: '32326-855', sreet: 'Rua São Benedito', sreet_number: '36', block: 'Copacabana', city: 'Rio de Janeiro', state: 'RJ', type: 'Cliente', provider: 'Email/Senha', status: 'Inativo', createdAt: '28/04/2026' },
+  
+  
 ];
 
 export default function UsuariosGestao(): React.JSX.Element {
@@ -42,6 +55,11 @@ export default function UsuariosGestao(): React.JSX.Element {
     phone: '',
     cpf: '',
     cep: '',
+    sreet: '', // rua
+    sreet_number: '', //número da rua
+    block: '', //bairro
+    city: '', //cidade
+    state: '', //estado
     type: 'Cliente',
     provider: 'Email/Senha',
     status: 'Ativo',
@@ -61,6 +79,10 @@ export default function UsuariosGestao(): React.JSX.Element {
     if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
     if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
     return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  };
+
+  const formatStreetNumber = (value: string) => {
+    return value.replace(/\D/g, ''); // só números
   };
 
   const formatPhone = (value: string) => {
@@ -88,16 +110,21 @@ export default function UsuariosGestao(): React.JSX.Element {
   const handleNovoUsuario = (): void => {
     const today = new Date().toLocaleDateString('pt-BR');
     setFormData({ 
-      firstName: '', 
-      lastName: '', 
-      email: '', 
-      phone: '', 
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
       cpf: '',
-      cep: '', 
-      type: 'Cliente', 
-      provider: 'Email/Senha', 
-      status: 'Ativo', 
-      createdAt: today 
+      cep: '',
+      sreet: '', // rua
+      sreet_number: '', //número da rua
+      block: '', //bairro
+      city: '', //cidade
+      state: '', //estado
+      type: 'Cliente',
+      provider: 'Email/Senha',
+      status: 'Ativo',
+      createdAt: today
     });
     setFormMode('create');
   };
@@ -124,11 +151,11 @@ export default function UsuariosGestao(): React.JSX.Element {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800 antialiased pt-10 pe-5">
+    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800 antialiased overflow-x-hidden">
       <Sidebar activePage="usuarios" />
 
-      <main className= "pl-72 flex-1">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <main className="flex-1 min-w-0 pl-72 pt-8 pb-10 pr-4 lg:pr-8 xl:pr-12 2xl:pr-16">
+        <div className="max-w-[1600px] mx-auto space-y-6 min-w-0">
           
           <PageHeader_usuario
             title="Gestão de Usuários" 
@@ -146,7 +173,7 @@ export default function UsuariosGestao(): React.JSX.Element {
               </h2>
               
               <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-slate-600">Nome</label>
                     <input type="text" className="p-2 border border-slate-200 rounded-lg" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} required />
@@ -231,6 +258,63 @@ export default function UsuariosGestao(): React.JSX.Element {
                         placeholder="00000-000"
                       />
                     </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-slate-600">Rua</label>
+                    <input
+                      type="text"
+                      className="p-2 border border-slate-200 rounded-lg"
+                      value={formData.sreet || ''}
+                      onChange={(e) => setFormData({ ...formData, sreet: e.target.value })}
+                      placeholder="Rua das Flores"
+                    />
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-slate-600">Número</label>
+                    <input
+                      type="text"
+                      className="p-2 border border-slate-200 rounded-lg"
+                      value={formData.sreet_number || ''}
+                      onChange={(e) => {
+                        const formatted = formatStreetNumber(e.target.value);
+                        setFormData({ ...formData, sreet_number: formatted });
+                      }}
+                      inputMode="numeric"
+                      placeholder="123"
+                    />
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-slate-600">Bairro</label>
+                    <input
+                      type="text"
+                      className="p-2 border border-slate-200 rounded-lg"
+                      value={formData.block || ''}
+                      onChange={(e) => setFormData({ ...formData, block: e.target.value })}
+                      placeholder="Centro"
+                    />
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-slate-600">Cidade</label>
+                    <input
+                      type="text"
+                      className="p-2 border border-slate-200 rounded-lg"
+                      value={formData.city || ''}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="São Paulo"
+                    />
+                  </div>
+                  <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-slate-600">Estado</label>
+                    <select
+                      className="p-2 border border-slate-200 rounded-lg bg-white"
+                      value={formData.state || ''}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    >
+                      <option value="">Selecione</option>
+                      {BRAZILIAN_STATES.map((uf) => (
+                        <option key={uf} value={uf}>{uf}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-slate-600">Tipo de Usuário</label>
                     <select className="p-2 border border-slate-200 rounded-lg bg-white" value={formData.type || 'Cliente'} onChange={(e) => setFormData({...formData, type: e.target.value})}>

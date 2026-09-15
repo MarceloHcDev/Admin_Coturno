@@ -19,7 +19,7 @@ export default function Home_admin(): React.JSX.Element {
   return (
     <div className="flex min-h-screen w-full pe-10 pt-10 bg-slate-50 text-slate-900 antialiased">
       <Sidebar />
-      <main className="pl-72 flex-1 overflow-y-auto">
+      <main className="pl-72 pb-10 flex-1 overflow-y-auto">
         <header className="mb-2">
           <h1 className="text-2xl font-barlow font-bold text-slate-900 tracking-tight">Dashboard</h1>
           <p className="text-xs text-slate-500 font-medium mt-1">

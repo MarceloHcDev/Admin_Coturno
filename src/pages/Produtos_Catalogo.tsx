@@ -117,10 +117,10 @@ export default function Produtos_Catalogo(): React.JSX.Element {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 pt-10 pe-5">
+    <div className="flex min-h-screen bg-slate-50 overflow-x-hidden">
       <Sidebar activePage="produtos" />
-      <main className="pl-72 flex-1">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <main className="flex-1 min-w-0 pl-72 pt-8 pb-10 pr-4 lg:pr-8 xl:pr-12 2xl:pr-16">
+        <div className="max-w-[1600px] mx-auto space-y-6 min-w-0">
           <PageHeader 
             title="Gerenciamento de Produtos" 
             subtitle="Gerencie o catálogo de calçados da sua loja" 
@@ -136,7 +136,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
               </h2>
               
               <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-slate-600">Nome do Produto</label>
                     <input 
