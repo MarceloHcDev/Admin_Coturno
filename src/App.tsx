@@ -4,6 +4,7 @@ import Produtos_Catalogo from './pages/Produtos_Catalogo';
 import UsuariosGestao from './pages/UsuariosGestao';
 import LogEventos from './pages/LogEventos';
 import { EdicaoImagens } from './pages/Edicao_Imagens';
+import Pedidos_Listagem from './pages/Pedidos_Listagem';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
       {/* Rotas do Painel Administrativo */}
       <Route path="/admin" element={<Home_admin />} />
       <Route path="/admin/produtos" element={<Produtos_Catalogo />} />
+      <Route path="/admin/pedidos" element={<Pedidos_Listagem />} />
       <Route path="/admin/usuarios" element={<UsuariosGestao />} />
       <Route path="/admin/imagens" element={<EdicaoImagens />} />
       <Route path="/admin/logs" element={<LogEventos />} />

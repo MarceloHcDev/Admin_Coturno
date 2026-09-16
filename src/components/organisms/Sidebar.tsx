@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SidebarNavItem } from '../molecules/SidebarNavItem'; 
-import { HomeIcon, ProductsIcon, UsersIcon, LogoutIcon, LogIcon, ImageIcon } from '../atoms/Icons';
+import { HomeIcon, ProductsIcon, OrdersIcon, UsersIcon, LogoutIcon, LogIcon, ImageIcon } from '../atoms/Icons';
 
 export interface SidebarProps {
   activePage?: string;
@@ -43,6 +43,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage }) => {
             label="Produtos" 
             isActive={activePage === 'produtos' || location.pathname === '/admin/produtos'} 
             onClick={() => navigate('/admin/produtos')}
+          />
+          <SidebarNavItem 
+            icon={OrdersIcon} 
+            label="Pedidos" 
+            isActive={activePage === 'pedidos' || location.pathname === '/admin/pedidos'} 
+            onClick={() => navigate('/admin/pedidos')}
           />
           <SidebarNavItem 
             icon={UsersIcon} 
