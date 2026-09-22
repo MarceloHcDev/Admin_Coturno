@@ -21,7 +21,10 @@ export const PedidoTableHeader: React.FC = () => {
           Data do Pedido
         </th>
         <th scope="col" className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-          Status
+          Status da Compra
+        </th>
+        <th scope="col" className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+          Status da Envio
         </th>
         <th scope="col" className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
           Detalhes/Ações

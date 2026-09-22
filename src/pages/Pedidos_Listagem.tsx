@@ -4,7 +4,7 @@ import Sidebar from '../components/organisms/Sidebar';
 import PageHeader from '../components/molecules/PageHeader';
 import SearchInput from '../components/atoms/SearchInput';
 import PedidoTable from '../components/organisms/PedidoTable';
-import { Pedido, PedidoStatus, ItemPedido } from '../types/order';
+import { Pedido, PedidoEnvioStatus, PedidoCompraStatus } from '../types/order';
 
 export interface PedidoFormData extends Omit<Pedido, 'valorTotal'> {
   valorTotal: number | string;
@@ -20,7 +20,8 @@ export default function Pedidos_Listagem(): React.JSX.Element {
     {
       id: 1001,
       valorTotal: 599.9,
-      status: 'Entregue',
+      statusEnvio: 'Entregue',
+      statusCompra: 'Aprovado',
       dataPedido: '2026-08-12T14:32:00',
       usuarioId: 12,
       enderecoId: 8,
@@ -43,264 +44,14 @@ export default function Pedidos_Listagem(): React.JSX.Element {
         },
       ],
     },
-    {
-      id: 1002,
-      valorTotal: 1099.8,
-      status: 'Enviado',
-      dataPedido: '2026-09-01T09:15:00',
-      usuarioId: 27,
-      enderecoId: 19,
-      produtos_do_pedido: [
-        {
-          produto: { 
-            id: 2, 
-            nome: 'Atalaia Montanha', 
-            nome_produto: 'Atalaia Montanha',
-            categoria: 'Coturno', 
-            categoria_produto: 'Coturno',
-            preco: 799.9, 
-            preco_produto: 799.9,
-            estoque: 32, 
-            quantidade_estoque: 32,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 799.9,
-        },
-        {
-          produto: { 
-            id: 3, 
-            nome: 'Acero Adventure', 
-            nome_produto: 'Acero Adventure',
-            categoria: 'Borzeguim', 
-            categoria_produto: 'Borzeguim',
-            preco: 299.9, 
-            preco_produto: 299.9,
-            estoque: 28, 
-            quantidade_estoque: 28,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 299.9,
-        },
-      ],
-    },
-    {
-      id: 1003,
-      valorTotal: 800.8,
-      status: 'Enviado',
-      dataPedido: '2026-09-01T09:15:00',
-      usuarioId: 27,
-      enderecoId: 19,
-      produtos_do_pedido: [
-        {
-          produto: { 
-            id: 2, 
-            nome: 'Atalaia Montanha', 
-            nome_produto: 'Atalaia Montanha',
-            categoria: 'Coturno', 
-            categoria_produto: 'Coturno',
-            preco: 799.9, 
-            preco_produto: 799.9,
-            estoque: 32, 
-            quantidade_estoque: 32,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 799.9,
-        },
-        {
-          produto: { 
-            id: 3, 
-            nome: 'Acero Adventure', 
-            nome_produto: 'Acero Adventure',
-            categoria: 'Borzeguim', 
-            categoria_produto: 'Borzeguim',
-            preco: 299.9, 
-            preco_produto: 299.9,
-            estoque: 28, 
-            quantidade_estoque: 28,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 299.9,
-        },
-      ],
-    },
-    {
-      id: 1004,
-      valorTotal: 800.8,
-      status: 'Enviado',
-      dataPedido: '2026-09-01T09:15:00',
-      usuarioId: 27,
-      enderecoId: 19,
-      produtos_do_pedido: [
-        {
-          produto: { 
-            id: 2, 
-            nome: 'Atalaia Montanha', 
-            nome_produto: 'Atalaia Montanha',
-            categoria: 'Coturno', 
-            categoria_produto: 'Coturno',
-            preco: 799.9, 
-            preco_produto: 799.9,
-            estoque: 32, 
-            quantidade_estoque: 32,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 799.9,
-        },
-        {
-          produto: { 
-            id: 3, 
-            nome: 'Acero Adventure', 
-            nome_produto: 'Acero Adventure',
-            categoria: 'Borzeguim', 
-            categoria_produto: 'Borzeguim',
-            preco: 299.9, 
-            preco_produto: 299.9,
-            estoque: 28, 
-            quantidade_estoque: 28,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 299.9,
-        },
-      ],
-    },
-    {
-      id: 1005,
-      valorTotal: 800.8,
-      status: 'Enviado',
-      dataPedido: '2026-09-01T09:15:00',
-      usuarioId: 27,
-      enderecoId: 19,
-      produtos_do_pedido: [
-        {
-          produto: { 
-            id: 2, 
-            nome: 'Atalaia Montanha', 
-            nome_produto: 'Atalaia Montanha',
-            categoria: 'Coturno', 
-            categoria_produto: 'Coturno',
-            preco: 799.9, 
-            preco_produto: 799.9,
-            estoque: 32, 
-            quantidade_estoque: 32,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 799.9,
-        },
-        {
-          produto: { 
-            id: 3, 
-            nome: 'Acero Adventure', 
-            nome_produto: 'Acero Adventure',
-            categoria: 'Borzeguim', 
-            categoria_produto: 'Borzeguim',
-            preco: 299.9, 
-            preco_produto: 299.9,
-            estoque: 28, 
-            quantidade_estoque: 28,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 299.9,
-        },
-      ],
-    },
-    {
-      id: 1006,
-      valorTotal: 800.8,
-      status: 'Enviado',
-      dataPedido: '2026-09-01T09:15:00',
-      usuarioId: 27,
-      enderecoId: 19,
-      produtos_do_pedido: [
-        {
-          produto: { 
-            id: 2, 
-            nome: 'Atalaia Montanha', 
-            nome_produto: 'Atalaia Montanha',
-            categoria: 'Coturno', 
-            categoria_produto: 'Coturno',
-            preco: 799.9, 
-            preco_produto: 799.9,
-            estoque: 32, 
-            quantidade_estoque: 32,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 799.9,
-        },
-        {
-          produto: { 
-            id: 3, 
-            nome: 'Acero Adventure', 
-            nome_produto: 'Acero Adventure',
-            categoria: 'Borzeguim', 
-            categoria_produto: 'Borzeguim',
-            preco: 299.9, 
-            preco_produto: 299.9,
-            estoque: 28, 
-            quantidade_estoque: 28,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 299.9,
-        },
-      ],
-    },
-    {
-      id: 1007,
-      valorTotal: 800.8,
-      status: 'Enviado',
-      dataPedido: '2026-09-01T09:15:00',
-      usuarioId: 27,
-      enderecoId: 19,
-      produtos_do_pedido: [
-        {
-          produto: { 
-            id: 2, 
-            nome: 'Atalaia Montanha', 
-            nome_produto: 'Atalaia Montanha',
-            categoria: 'Coturno', 
-            categoria_produto: 'Coturno',
-            preco: 799.9, 
-            preco_produto: 799.9,
-            estoque: 32, 
-            quantidade_estoque: 32,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 799.9,
-        },
-        {
-          produto: { 
-            id: 3, 
-            nome: 'Acero Adventure', 
-            nome_produto: 'Acero Adventure',
-            categoria: 'Borzeguim', 
-            categoria_produto: 'Borzeguim',
-            preco: 299.9, 
-            preco_produto: 299.9,
-            estoque: 28, 
-            quantidade_estoque: 28,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 299.9,
-        },
-      ],
-    },
+   
   ]);
 
   const [formData, setFormData] = useState<PedidoFormData>({
     id: '',
     valorTotal: '',
-    status: 'Pendente',
+    statusCompra: 'Pendente',
+    statusEnvio: 'Pendente',
     dataPedido: '',
     usuarioId: '',
     enderecoId: '',
@@ -313,7 +64,8 @@ export default function Pedidos_Listagem(): React.JSX.Element {
       setFormData({
         id: pedido.id,
         valorTotal: pedido.valorTotal,
-        status: pedido.status,
+        statusCompra: pedido.statusCompra,
+        statusEnvio: pedido.statusEnvio,
         dataPedido: pedido.dataPedido,
         usuarioId: pedido.usuarioId,
         enderecoId: pedido.enderecoId,
@@ -334,7 +86,7 @@ export default function Pedidos_Listagem(): React.JSX.Element {
     if (editingId !== null) {
       setPedidos((prevPedidos) =>
         prevPedidos.map((p) =>
-          String(p.id) === String(editingId) ? { ...p, status: formData.status } : p
+          String(p.id) === String(editingId) ? { ...p, status: formData.statusEnvio } : p
         )
       );
     }
@@ -343,7 +95,7 @@ export default function Pedidos_Listagem(): React.JSX.Element {
 
   const handleDelete = (id: string | number): void => {
     setPedidos((prev) =>
-      prev.map((p) => (String(p.id) === String(id) ? { ...p, status: 'Cancelado' } : p))
+      prev.map((p) => (String(p.id) === String(id) ? { ...p, statusEnvio: 'Cancelado' } : p))
     );
   };
 
@@ -351,7 +103,8 @@ export default function Pedidos_Listagem(): React.JSX.Element {
     const term = searchTerm.toLowerCase();
     return (
       String(pedido.id).toLowerCase().includes(term) ||
-      pedido.status.toLowerCase().includes(term) ||
+      pedido.statusEnvio.toLowerCase().includes(term) ||
+      pedido.statusCompra.toLowerCase().includes(term) ||
       String(pedido.usuarioId).toLowerCase().includes(term)
     );
   });
@@ -447,19 +200,49 @@ export default function Pedidos_Listagem(): React.JSX.Element {
                       className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
                     />
                   </div>
-
-                  {/* Status do Pedido */}
+                  
+                  {/* Status da Compra */}
                   <div className="flex flex-col space-y-1">
                     <label className="text-sm font-medium text-slate-900">
-                      Status do Pedido (Editável)
+                      Status da Compra
                     </label>
                     <select
-                      className="p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 bg-white font-medium"
-                      value={formData.status}
+                      className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 text-slate-900 bg-slate-100 font-medium"
+                      disabled
+                      value={formData.statusCompra}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          status: e.target.value as PedidoStatus,
+                          statusCompra: e.target.value as PedidoCompraStatus,
+                        })
+                      }
+                      required
+                    >
+                      <option value="Pendente">Pendente</option>
+                      <option value="Aprovado">Aprovado</option>
+                      <option value="Processando">Processando</option>
+                      <option value="Recusado">Recusado</option>
+                      <option value="Reembolsado">Reembolsado</option>
+                      <option value="Em_contestação">Em_contestação</option>
+                      <option value="Cancelado">Cancelado</option>
+                      
+                    </select>
+                  </div>
+                </div>
+
+        
+                {/* Status de Envio*/}
+                <div className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-slate-900">
+                      <strong>Status do Envio</strong>
+                    </label>
+                    <select
+                      className="p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 bg-white font-medium"
+                      value={formData.statusEnvio}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          statusEnvio: e.target.value as PedidoEnvioStatus,
                         })
                       }
                       required
@@ -469,7 +252,6 @@ export default function Pedidos_Listagem(): React.JSX.Element {
                       <option value="Entregue">Entregue</option>
                       <option value="Cancelado">Cancelado</option>
                     </select>
-                  </div>
                 </div>
 
                 {/* Exibição dos Produtos do Pedido */}

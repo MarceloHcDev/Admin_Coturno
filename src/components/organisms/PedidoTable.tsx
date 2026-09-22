@@ -1,8 +1,8 @@
 // src/components/organisms/PedidoTable.tsx
 import React from 'react';
 import PedidoTableHeader from '../molecules/PedidoTableHeader';
-import { EditButton, DeleteButton, BoxIcon } from '../atoms/Icons';
-import { Pedido, PedidoStatus } from '../../types/order';
+import { EditButton, BoxIcon } from '../atoms/Icons';
+import { Pedido, PedidoEnvioStatus, PedidoCompraStatus } from '../../types/order';
 
 export interface PedidoTableProps {
   /** Array contendo os pedidos a serem exibidos */
@@ -13,17 +13,27 @@ export interface PedidoTableProps {
   onDelete?: (id: string | number) => void;
 }
 
-const statusStyles: Record<PedidoStatus, string> = {
+const statusCompraStyles: Record<PedidoCompraStatus, string> = {
+  Pendente: 'bg-amber-50 text-amber-700 border border-amber-200',
+  Aprovado: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  Processando: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  Recusado: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  Cancelado: 'bg-rose-50 text-rose-700 border border-rose-200',
+  Reembolsado: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  Em_contestação: 'bg-rose-50 text-rose-700 border border-rose-200',
+};
+
+const statusEnvioStyles: Record<PedidoEnvioStatus, string> = {
   Pendente: 'bg-amber-50 text-amber-700 border border-amber-200',
   Enviado: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
   Entregue: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   Cancelado: 'bg-rose-50 text-rose-700 border border-rose-200',
 };
 
+
 export const PedidoTable: React.FC<PedidoTableProps> = ({
   pedidos,
   onEdit,
-  onDelete,
 }) => {
   return (
     <div className="w-full min-w-0 overflow-x-auto bg-white border border-slate-300 rounded-xl shadow-sm">
@@ -72,9 +82,18 @@ export const PedidoTable: React.FC<PedidoTableProps> = ({
               {/* Status */}
               <td className="py-3 px-4 whitespace-nowrap">
                 <span
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusStyles[pedido.status as PedidoStatus] ?? 'bg-slate-50 text-slate-700 border border-slate-200'}`}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusCompraStyles[pedido.statusCompra as PedidoCompraStatus] ?? 'bg-slate-50 text-slate-700 border border-slate-200'}`}
                 >
-                  {pedido.status}
+                  {pedido.statusCompra}
+                </span>
+              </td>
+
+              {/* Status */}
+              <td className="py-3 px-4 whitespace-nowrap">
+                <span
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusEnvioStyles[pedido.statusEnvio as PedidoEnvioStatus] ?? 'bg-slate-50 text-slate-700 border border-slate-200'}`}
+                >
+                  {pedido.statusEnvio}
                 </span>
               </td>
 

@@ -1,7 +1,16 @@
 // src/types/order.ts
 import { Product } from './product';
 
-export type PedidoStatus =
+export type PedidoCompraStatus =
+  | 'Pendente'
+  | 'Aprovado'
+  | 'Processando'
+  | 'Recusado'
+  | 'Reembolsado'
+  | 'Em_contestação'
+  | 'Cancelado';
+
+export type PedidoEnvioStatus =
   | 'Pendente'
   | 'Enviado'
   | 'Entregue'
@@ -16,7 +25,8 @@ export interface ItemPedido {
 export interface Pedido {
   id: string | number;
   valorTotal: number;
-  status: PedidoStatus;
+  statusCompra: PedidoCompraStatus;
+  statusEnvio: PedidoEnvioStatus;
   dataPedido: string;
   usuarioId: string | number;
   enderecoId: string | number;
@@ -25,5 +35,5 @@ export interface Pedido {
 
 export interface PedidoFilters {
   busca: string;
-  status?: PedidoStatus;
+  status?: PedidoEnvioStatus;
 }
