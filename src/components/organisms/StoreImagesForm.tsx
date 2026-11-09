@@ -2,10 +2,16 @@
 import React, { useState } from 'react';
 import { ImageUploadInput } from '../atoms/ImageUploadInput';
 
+
+//ignore o erro abaixo. 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const StoreImagesForm: React.FC = () => {
-  const [bannerFile, setBannerFile] = useState<File|null>(null);
-  const [carouselFile, setCarouselFile] = useState<File|null>(null);
-  const [categoryFile, setCategoryFile] = useState<File|null>(null);
+  const [hero1File, setHero1File] = useState<File | null>(null);
+  const [hero2File, setHero2File] = useState<File | null>(null);
+  const [hero3File, setHero3File] = useState<File | null>(null);
+  const [carouselFile, setCarouselFile] = useState<File | null>(null);
+  const [categoryFile, setCategoryFile] = useState<File | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -15,7 +21,7 @@ export const StoreImagesForm: React.FC = () => {
     setStatusMessage(null);
 
     // Validação local: verifica se ao menos uma imagem foi selecionada
-    if (!bannerFile && !carouselFile && !categoryFile) {
+    if (!hero1File && !hero2File && !hero3File && !carouselFile && !categoryFile) {
       setStatusMessage({
         type: 'error',
         text: 'Por favor, selecione ao menos uma imagem para enviar.',
@@ -26,21 +32,17 @@ export const StoreImagesForm: React.FC = () => {
     // Instancia o FormData para envio multipart/form-data
     const formData = new FormData();
 
-    if (bannerFile) {
-      formData.append('banner', bannerFile);
-    }
-    if (carouselFile) {
-      formData.append('carousel', carouselFile);
-    }
-    if (categoryFile) {
-      formData.append('category', categoryFile);
-    }
+    // Hero: o back-end renomeia para hero1, hero2 e hero3 na pasta "carrossel"
+    if (hero1File) formData.append('hero1', hero1File);
+    if (hero2File) formData.append('hero2', hero2File);
+    if (hero3File) formData.append('hero3', hero3File);
+    if (carouselFile) formData.append('carousel', carouselFile);
+    if (categoryFile) formData.append('category', categoryFile);
 
     setLoading(true);
 
     try {
-      // Ajuste a URL para o endpoint correto do seu Laravel em ambiente de desenvolvimento
-      const response = await fetch('http://localhost:8000/api/upload-store-images', {
+      const response = await fetch(`${API_URL}/api/upload-store-images`, {
         method: 'POST',
         body: formData,
         headers: {
@@ -59,7 +61,7 @@ export const StoreImagesForm: React.FC = () => {
       } else {
         setStatusMessage({
           type: 'error',
-          text: data.message || 'Erro ao realizar o envio das imagens.',
+          text: data.message || data.error || 'Erro ao realizar o envio das imagens.',
         });
       }
     } catch (error) {
@@ -78,16 +80,28 @@ export const StoreImagesForm: React.FC = () => {
       {/* Seção 1: Banner Principal */}
       <section className="border-b border-gray-200 pb-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-1">
-          1. Banner Principal (Home)
+          1. Hero - Banner Principal (Home)
         </h2>
         <p className="text-sm text-gray-500 mb-4">
-          Imagem de destaque principal exibida no topo do site da loja virtual.
+          Imagens de destaque principal exibida no topo do site da loja virtual.
         </p>
         <ImageUploadInput
-          id="banner-principal"
-          label="Anexo da Imagem do Banner"
-          recommendedSize="1920x600px"
-          onImageChange={(file) => setBannerFile(file)}
+          id="hero-imagem-1"
+          label="Anexo da Imagem 1 do carrossel"
+          recommendedSize="1920x823px"
+          onImageChange={(file) => setHero1File(file)}
+        />
+        <ImageUploadInput
+          id="hero-imagem-2"
+          label="Anexo da Imagem 2 do carrossel"
+          recommendedSize="1920x823px"
+          onImageChange={(file) => setHero2File(file)}
+        />
+        <ImageUploadInput
+          id="hero-imagem-3"
+          label="Anexo da Imagem 3 do carrossel"
+          recommendedSize="1920x823px"
+          onImageChange={(file) => setHero3File(file)}
         />
       </section>
 
