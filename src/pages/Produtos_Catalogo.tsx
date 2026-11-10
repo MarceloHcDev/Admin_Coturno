@@ -1,8 +1,9 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import Sidebar from '../components/organisms/Sidebar';
 import PageHeader from '../components/molecules/PageHeader';
 import SearchInput from '../components/atoms/SearchInput';
 import ProductTable, { Product } from '../components/organisms/ProductTable';
+import { api } from '../services/api';
 
 export interface ProductFormData {
   name: string;
@@ -15,7 +16,6 @@ export interface ProductFormData {
   stock: number | string;
   sizes: string;
   color: string;
-  image: string;
 }
 
 type FormMode = 'create' | 'edit' | null;
@@ -24,54 +24,190 @@ export default function Produtos_Catalogo(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [formMode, setFormMode] = useState<FormMode>(null); 
   const [editingId, setEditingId] = useState<string | number | null>(null);
-
-  const [products, setProducts] = useState<Product[]>([
-    { id: 1, name: 'Atalaia Combat', productType: 'Coturno', model: 'Combat X', brand: 'Atalaia', active: 'Ativo', price: 599.90, stock: 45, sizes: '38-44', color: 'Preto/Branco' },
-    { id: 2, name: 'Atalaia Montanha', productType: 'Coturno', model: 'Montanha Pro', brand: 'Atalaia', active: 'Ativo', price: 799.90, stock: 32, sizes: '36-42', color: 'Azul' },
-    { id: 3, name: 'Acero Adventure', productType: 'Borzeguim', model: 'Adventure Classic', brand: 'Acero', active: 'Ativo', price: 299.90, stock: 28, sizes: '38-44', color: 'Marrom' },
-    { id: 4, name: 'Acero Adventure', productType: 'Borzeguim', model: 'Adventure Light', brand: 'Acero', active: 'Inativo', price: 249.90, stock: 56, sizes: '36-42', color: 'Bege' },
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const [formData, setFormData] = useState<ProductFormData>({
-    name: '', productType: '', model: '', brand: '', description: '', active: 'Ativo', price: '', stock: '', sizes: '', color: '', image: ''
+    name: '',
+    productType: '',
+    model: '',
+    brand: '',
+    description: '',
+    active: 'Ativo',
+    price: '',
+    stock: '',
+    sizes: '',
+    color: '',
   });
 
-  
+  // -------------------------------------------------------------
+  // ETAPA 4: Carregar Produtos da API (GET /api/v1/produtos)
+  // -------------------------------------------------------------
+  const carregarProdutos = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/produtos');
+      const listaApi = response.data?.data || [];
+
+      // Mapeia os dados da API para a interface Product da tabela
+      const formatados: Product[] = listaApi.map((p: any) => ({
+        id: p.id,
+        name: p.name || p.model || 'Sem Nome',
+        productType: p.productType || p.product_type || 'Geral',
+        model: p.model || '',
+        brand: p.brand || '',
+        description: p.description || '',
+        active: p.active === 'Ativo' || p.status === 'ativo' ? 'Ativo' : 'Inativo',
+        price: Number(p.price || 0),
+        stock: Number(p.stock || 0),
+        sizes: Array.isArray(p.sizes) ? p.sizes.join(', ') : (p.sizes || '38-44'),
+        color: p.color || '',
+      }));
+
+      setProducts(formatados);
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarProdutos();
+  }, []);
+
+  // -------------------------------------------------------------
+  // Formulário: Abrir para Edição ou Criação
+  // -------------------------------------------------------------
   const handleEdit = (id: string | number): void => {
-    const product = products.find(p => p.id === id);
+    const product = products.find(p => String(p.id) === String(id));
     if (product) {
       setFormData({
         name: product.name,
         productType: product.productType,
         model: product.model,
         brand: product.brand,
-        description: (product as any).description || '',
+        description: product.description || '',
         active: product.active,
         price: product.price,
         stock: product.stock,
         sizes: product.sizes,
         color: product.color,
-        image: (product as any).image || ''
       });
-      setEditingId(Number(id));
+      setSelectedFiles([]);
+      setEditingId(id);
       setFormMode('edit');
     }
   };
   
   const handleOpenCreate = (): void => {
-    setFormData({ name: '', productType: '', model: '', brand: '', description: '', active: 'Ativo', price: '', stock: '', sizes: '', color: '', image: '' });
+    setFormData({
+      name: '',
+      productType: '',
+      model: '',
+      brand: '',
+      description: '',
+      active: 'Ativo',
+      price: '',
+      stock: '',
+      sizes: '',
+      color: '',
+    });
+    setSelectedFiles([]);
     setFormMode('create');
   };
   
   const handleCloseForm = (): void => {
     setFormMode(null);
     setEditingId(null);
+    setSelectedFiles([]);
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData({ ...formData, image: `/${file.name}` });
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length > 6) {
+      alert('Você pode selecionar no máximo 6 imagens.');
+      setSelectedFiles(files.slice(0, 6));
+    } else {
+      setSelectedFiles(files);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // ETAPA 3: Criar / Editar Produto na API (POST /api/v1/admin/produtos)
+  // -------------------------------------------------------------
+  const handleFormSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
+
+    // Validação obrigatória de imagens ao criar
+    if (formMode === 'create' && (selectedFiles.length < 2 || selectedFiles.length > 6)) {
+      alert('É obrigatório anexar no mínimo 2 e no máximo 6 imagens do produto.');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const data = new FormData();
+      data.append('name', formData.name);
+      data.append('model', formData.model || formData.name);
+      data.append('product_type', formData.productType);
+      data.append('brand', formData.brand);
+      data.append('description', formData.description || 'Sem descrição');
+      data.append('color', formData.color);
+      data.append('price', String(formData.price || 0));
+      data.append('stock', String(formData.stock || 0));
+      data.append('sizes', formData.sizes);
+      data.append('active', formData.active === 'Ativo' ? '1' : '0');
+
+      if (selectedFiles.length > 0) {
+        selectedFiles.forEach((file) => {
+          data.append('images[]', file);
+        });
+        // retrocompatibilidade caso o backend leia campo único
+        data.append('image', selectedFiles[0]);
+      }
+
+      if (formMode === 'edit' && editingId !== null) {
+        // Para update via multipart/form-data no Laravel, enviamos POST com _method=PUT
+        data.append('_method', 'PUT');
+        await api.post(`/admin/products/${editingId}`, data, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        alert('Produto atualizado com sucesso!');
+      } else {
+        await api.post('/admin/produtos', data, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        alert('Produto cadastrado com sucesso!');
+      }
+
+      handleCloseForm();
+      await carregarProdutos(); // Atualiza a tabela na hora
+    } catch (error: any) {
+      console.error('Erro ao salvar produto:', error);
+      const msg = error.response?.data?.message || 'Falha ao salvar produto. Verifique os dados.';
+      alert(msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // Exclusão de Produto (DELETE /api/v1/admin/products/{id})
+  // -------------------------------------------------------------
+  const handleDelete = async (id: string | number): Promise<void> => {
+    if (!window.confirm('Tem certeza que deseja excluir este produto?')) return;
+
+    try {
+      await api.delete(`/admin/products/${id}`);
+      setProducts(prev => prev.filter(p => String(p.id) !== String(id)));
+      alert('Produto excluído com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao excluir produto:', error);
+      alert('Falha ao excluir produto.');
     }
   };
 
@@ -79,42 +215,6 @@ export default function Produtos_Catalogo(): React.JSX.Element {
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (product.productType && product.productType.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
-  const handleFormSubmit = (e: FormEvent<HTMLFormElement>): void => {
-    e.preventDefault();
-    const parsedPrice = typeof formData.price === 'number' ? formData.price : parseFloat(formData.price) || 0;
-    const parsedStock = typeof formData.stock === 'number' ? formData.stock : parseInt(formData.stock, 10) || 0;
-
-    if (formMode === 'edit' && editingId !== null) {
-      setProducts(products.map(p => p.id === editingId ? { 
-        ...p,
-        name: formData.name,
-        productType: formData.productType,
-        model: formData.model,
-        brand: formData.brand,
-        active: formData.active,
-        sizes: formData.sizes,
-        color: formData.color,
-        price: parsedPrice,
-        stock: parsedStock,
-        id: editingId 
-      } : p));
-    } else {
-      setProducts([...products, { 
-        id: Date.now(),
-        name: formData.name,
-        productType: formData.productType,
-        model: formData.model,
-        brand: formData.brand,
-        active: formData.active,
-        sizes: formData.sizes,
-        color: formData.color,
-        price: parsedPrice,
-        stock: parsedStock,
-      }]);
-    }
-    handleCloseForm();
-  };
 
   return (
     <div className="flex min-h-screen bg-slate-50 overflow-x-hidden">
@@ -126,7 +226,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
             subtitle="Gerencie o catálogo de calçados da sua loja" 
             onActionClick={handleOpenCreate} 
             hideButton={formMode !== null}
-            buttonClassName="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors px-4 py-2 text-sm flex items-center shadow-sm"
+            buttonClassName="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors px-4 py-2 text-sm flex items-center shadow-sm cursor-pointer"
           />
 
           {formMode !== null ? (
@@ -141,7 +241,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                     <label className="text-sm font-medium text-slate-600">Nome do Produto</label>
                     <input 
                       type="text"
-                      placeholder="Ex: Nike Air Max 2024"
+                      placeholder="Ex: Coturno Tático Militar"
                       className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -195,11 +295,11 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                   </div>
 
                   <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Preço</label>
+                    <label className="text-sm font-medium text-slate-600">Preço (R$)</label>
                     <input 
                       type="number"
                       step="0.01"
-                      placeholder="R$ 0,00"
+                      placeholder="0.00"
                       className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
@@ -223,7 +323,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                     <label className="text-sm font-medium text-slate-600">Tamanhos Disponíveis</label>
                     <input 
                       type="text"
-                      placeholder="Ex: 38-44"
+                      placeholder="Ex: 38, 39, 40, 41, 42"
                       className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900"
                       value={formData.sizes}
                       onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
@@ -235,7 +335,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                     <label className="text-sm font-medium text-slate-600">Cor</label>
                     <input 
                       type="text"
-                      placeholder="Ex: Preto/Branco"
+                      placeholder="Ex: Preto"
                       className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900"
                       value={formData.color}
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
@@ -261,7 +361,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, active: 'Ativo' })}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border cursor-pointer ${
                         formData.active === 'Ativo'
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -272,7 +372,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, active: 'Inativo' })}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border cursor-pointer ${
                         formData.active === 'Inativo'
                           ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
@@ -284,34 +384,57 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                 </div>
 
                 <div className="flex flex-col space-y-1">
-                  <label className="text-sm font-medium text-slate-600">Imagem do Produto</label>
-                  <div className="flex items-center space-x-3">
-                    <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center">
-                      <span>Anexar Imagem</span>
-                      <input 
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                    <span className="text-sm text-slate-500 truncate max-w-xs">
-                      {formData.image ? formData.image : 'Nenhum arquivo escolhido'}
-                    </span>
+                  <label className="text-sm font-medium text-slate-600">
+                    Imagens do Produto <span className="text-red-500 font-bold">* (Mínimo 2, Máximo 6)</span>
+                  </label>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center space-x-3">
+                      <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center">
+                        <span>Selecionar Imagens</span>
+                        <input 
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                      <span className="text-sm font-medium text-slate-600">
+                        {selectedFiles.length === 0
+                          ? 'Nenhuma imagem selecionada'
+                          : `${selectedFiles.length} ${selectedFiles.length === 1 ? 'imagem selecionada' : 'imagens selecionadas'}`}
+                      </span>
+                    </div>
+
+                    {/* Previews / Nomes das imagens selecionadas */}
+                    {selectedFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {selectedFiles.map((file, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded text-xs border border-slate-200"
+                          >
+                            <span className="font-semibold text-blue-600">#{idx + 1}</span>
+                            <span className="truncate max-w-[150px]">{file.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex space-x-3 pt-4">
                   <button 
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                    disabled={saving}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-60"
                   >
-                    {formMode === 'edit' ? 'Atualizar produto' : 'Cadastrar Produto'}
+                    {saving ? 'Salvando...' : formMode === 'edit' ? 'Atualizar produto' : 'Cadastrar Produto'}
                   </button>
                   <button 
                     type="button"
                     onClick={handleCloseForm}
-                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors"
+                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors cursor-pointer"
                   >
                     Cancelar
                   </button>
@@ -328,10 +451,17 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                 />
               </div>
 
-              <ProductTable 
-                products={filteredProducts} 
-                onEdit={handleEdit} 
-              />
+              {loading ? (
+                <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500">
+                  Carregando produtos do banco de dados...
+                </div>
+              ) : (
+                <ProductTable 
+                  products={filteredProducts} 
+                  onEdit={handleEdit} 
+                  onDelete={handleDelete}
+                />
+              )}
             </>
           )}
         </div>
