@@ -13,8 +13,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage }) => {
   const location = useLocation();
 
   const handleLogout = (): void => {
-    console.log('Efetuando logout...');
-    navigate('/login'); 
+    localStorage.removeItem('admin_token');
+    navigate('/login', { replace: true });
   };
 
   return (

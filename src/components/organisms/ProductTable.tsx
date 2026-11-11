@@ -14,6 +14,7 @@ export interface Product {
   sizes: string;
   color: string;
   active: 'Ativo' | 'Inativo' | string;
+  description?: string;
 }
 
 export interface ProductTableProps {
