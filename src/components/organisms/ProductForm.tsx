@@ -1,5 +1,5 @@
 import React, { ChangeEvent, FormEvent } from "react";
-import { ProductFormData } from "../../pages/Produtos_Catalogo";
+import { ProductFormData } from "../../hooks/useProdutosCatalogo";
 
 export interface ProductFormProps {
   formMode: "create" | "edit";
