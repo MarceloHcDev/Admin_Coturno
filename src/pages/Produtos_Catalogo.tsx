@@ -4,6 +4,8 @@ import PageHeader from "../components/molecules/PageHeader";
 import SearchInput from "../components/atoms/SearchInput";
 import ProductTable from "../components/organisms/ProductTable";
 import ProductForm from "../components/organisms/ProductForm";
+import Toast from "../components/molecules/Toast";
+import ConfirmModal from "../components/molecules/ConfirmModal";
 import { useProdutosCatalogo } from "../hooks/useProdutosCatalogo";
 
 export default function Produtos_Catalogo(): React.JSX.Element {
@@ -17,10 +19,16 @@ export default function Produtos_Catalogo(): React.JSX.Element {
     saving,
     selectedFiles,
     filteredProducts,
+    toast,
+    closeToast,
+    deletingProduct,
+    isDeleting,
     handleOpenCreate,
     handleCloseForm,
     handleEdit,
     handleDelete,
+    handleConfirmDelete,
+    handleCancelDelete,
     handleFileChange,
     handleRemoveFile,
     handleFormSubmit,
@@ -28,6 +36,27 @@ export default function Produtos_Catalogo(): React.JSX.Element {
 
   return (
     <div className="flex min-h-screen bg-slate-50 overflow-x-hidden">
+      {/* Notificação Toast */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+        />
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmModal
+        isOpen={deletingProduct !== null}
+        title="Excluir Produto"
+        message={`Tem certeza que deseja excluir o produto "${deletingProduct?.name}"? Esta ação removerá o item do catálogo.`}
+        confirmText="Sim, Excluir"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        loading={isDeleting}
+      />
+
       <Sidebar activePage="produtos" />
       <main className="flex-1 min-w-0 pl-72 pt-8 pb-10 pr-4 lg:pr-8 xl:pr-12 2xl:pr-16">
         <div className="max-w-[1600px] mx-auto space-y-6 min-w-0">

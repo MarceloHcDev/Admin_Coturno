@@ -1,6 +1,7 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { Product } from "../components/organisms/ProductTable";
 import { api } from "../services/api";
+import { ToastType } from "../components/molecules/Toast";
 
 export interface ProductFormData {
   name: string;
@@ -16,6 +17,11 @@ export interface ProductFormData {
 }
 
 export type FormMode = "create" | "edit" | null;
+
+export interface ToastState {
+  message: string;
+  type: ToastType;
+}
 
 const initialFormData: ProductFormData = {
   name: "",
@@ -39,6 +45,19 @@ export function useProdutosCatalogo() {
   const [saving, setSaving] = useState<boolean>(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
+
+  // Estados de Toast e Confirmação de Exclusão
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  const showToast = (message: string, type: ToastType = "info") => {
+    setToast({ message, type });
+  };
+
+  const closeToast = () => {
+    setToast(null);
+  };
 
   // -------------------------------------------------------------
   // Carregar Produtos da API (GET /api/v1/produtos)
@@ -67,6 +86,7 @@ export function useProdutosCatalogo() {
       setProducts(formatados);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
+      showToast("Não foi possível carregar a lista de produtos.", "error");
     } finally {
       setLoading(false);
     }
@@ -122,7 +142,7 @@ export function useProdutosCatalogo() {
     setSelectedFiles((prev) => {
       const combined = [...prev, ...files];
       if (combined.length > 6) {
-        alert("Você pode adicionar no máximo 6 imagens ao todo.");
+        showToast("Você pode adicionar no máximo 6 imagens ao todo.", "warning");
         return combined.slice(0, 6);
       }
       return combined;
@@ -147,8 +167,9 @@ export function useProdutosCatalogo() {
       formMode === "create" &&
       (selectedFiles.length < 2 || selectedFiles.length > 6)
     ) {
-      alert(
+      showToast(
         "É obrigatório anexar no mínimo 2 e no máximo 6 imagens do produto.",
+        "warning",
       );
       return;
     }
@@ -180,12 +201,12 @@ export function useProdutosCatalogo() {
         await api.post(`/admin/products/${editingId}`, data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        alert("Produto atualizado com sucesso!");
+        showToast("Produto atualizado com sucesso!", "success");
       } else {
         await api.post("/admin/produtos", data, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        alert("Produto cadastrado com sucesso!");
+        showToast("Produto cadastrado com sucesso!", "success");
       }
 
       handleCloseForm();
@@ -194,27 +215,44 @@ export function useProdutosCatalogo() {
       console.error("Erro ao salvar produto:", error);
       const msg =
         error.response?.data?.message ||
-        "Falha ao salvar produto. Verifique os dados.";
-      alert(msg);
+        "Falha ao salvar produto. Verifique os dados informados.";
+      showToast(msg, "error");
     } finally {
       setSaving(false);
     }
   };
 
   // -------------------------------------------------------------
-  // Excluir Produto (DELETE /api/v1/admin/products/{id})
+  // Excluir Produto (Modal de Confirmação)
   // -------------------------------------------------------------
-  const handleDelete = async (id: string | number): Promise<void> => {
-    if (!window.confirm("Tem certeza que deseja excluir este produto?")) return;
+  const handleDelete = (id: string | number): void => {
+    const product = products.find((p) => String(p.id) === String(id));
+    if (product) {
+      setDeletingProduct(product);
+    }
+  };
+
+  const handleConfirmDelete = async (): Promise<void> => {
+    if (!deletingProduct) return;
 
     try {
-      await api.delete(`/admin/products/${id}`);
-      setProducts((prev) => prev.filter((p) => String(p.id) !== String(id)));
-      alert("Produto excluído com sucesso!");
+      setIsDeleting(true);
+      await api.delete(`/admin/products/${deletingProduct.id}`);
+      setProducts((prev) =>
+        prev.filter((p) => String(p.id) !== String(deletingProduct.id)),
+      );
+      showToast("Produto excluído com sucesso!", "success");
+      setDeletingProduct(null);
     } catch (error: any) {
       console.error("Erro ao excluir produto:", error);
-      alert("Falha ao excluir produto.");
+      showToast("Falha ao excluir produto. Tente novamente.", "error");
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleCancelDelete = (): void => {
+    setDeletingProduct(null);
   };
 
   // Filtro de busca
@@ -235,10 +273,16 @@ export function useProdutosCatalogo() {
     saving,
     selectedFiles,
     filteredProducts,
+    toast,
+    closeToast,
+    deletingProduct,
+    isDeleting,
     handleOpenCreate,
     handleCloseForm,
     handleEdit,
     handleDelete,
+    handleConfirmDelete,
+    handleCancelDelete,
     handleFileChange,
     handleRemoveFile,
     handleFormSubmit,
