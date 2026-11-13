@@ -45,6 +45,7 @@ export function useProdutosCatalogo() {
   const [saving, setSaving] = useState<boolean>(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
 
   // Estados de Toast e Confirmação de Exclusão
   const [toast, setToast] = useState<ToastState | null>(null);
@@ -68,20 +69,42 @@ export function useProdutosCatalogo() {
       const response = await api.get("/produtos");
       const listaApi = response.data?.data || [];
 
-      const formatados: Product[] = listaApi.map((p: any) => ({
-        id: p.id,
-        name: p.name || p.model || "Sem Nome",
-        productType: p.productType || p.product_type || "Geral",
-        model: p.model || "",
-        brand: p.brand || "",
-        description: p.description || "",
-        active:
-          p.active === "Ativo" || p.status === "ativo" ? "Ativo" : "Inativo",
-        price: Number(p.price || 0),
-        stock: Number(p.stock || 0),
-        sizes: Array.isArray(p.sizes) ? p.sizes.join(", ") : p.sizes || "38-44",
-        color: p.color || "",
-      }));
+      const backendBase = (
+        import.meta.env.VITE_API_URL || "http://localhost:8001/api/v1"
+      ).replace(/\/api\/v1\/?$/, "");
+
+      const formatados: Product[] = listaApi.map((p: any) => {
+        const rawImages: string[] =
+          Array.isArray(p.images) && p.images.length > 0
+            ? p.images
+            : p.image
+              ? [p.image]
+              : [];
+
+        const formattedImages = rawImages.map((img: string) => {
+          if (img.startsWith("/") && !img.startsWith("http")) {
+            return `${backendBase}${img}`;
+          }
+          return img;
+        });
+
+        return {
+          id: p.id,
+          name: p.name || p.model || "Sem Nome",
+          productType: p.productType || p.product_type || "Geral",
+          model: p.model || "",
+          brand: p.brand || "",
+          description: p.description || "",
+          active:
+            p.active === "Ativo" || p.status === "ativo" ? "Ativo" : "Inativo",
+          price: Number(p.price || 0),
+          stock: Number(p.stock || 0),
+          sizes: Array.isArray(p.sizes) ? p.sizes.join(", ") : p.sizes || "38-44",
+          color: p.color || "",
+          image: formattedImages[0] || "",
+          images: formattedImages,
+        };
+      });
 
       setProducts(formatados);
     } catch (error) {
@@ -115,6 +138,7 @@ export function useProdutosCatalogo() {
         color: product.color,
       });
       setSelectedFiles([]);
+      setExistingImages(product.images || (product.image ? [product.image] : []));
       setEditingId(id);
       setFormMode("edit");
     }
@@ -123,6 +147,7 @@ export function useProdutosCatalogo() {
   const handleOpenCreate = (): void => {
     setFormData(initialFormData);
     setSelectedFiles([]);
+    setExistingImages([]);
     setFormMode("create");
   };
 
@@ -130,6 +155,7 @@ export function useProdutosCatalogo() {
     setFormMode(null);
     setEditingId(null);
     setSelectedFiles([]);
+    setExistingImages([]);
   };
 
   // -------------------------------------------------------------
@@ -272,6 +298,7 @@ export function useProdutosCatalogo() {
     loading,
     saving,
     selectedFiles,
+    existingImages,
     filteredProducts,
     toast,
     closeToast,

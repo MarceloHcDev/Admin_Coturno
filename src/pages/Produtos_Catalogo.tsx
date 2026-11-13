@@ -18,6 +18,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
     loading,
     saving,
     selectedFiles,
+    existingImages,
     filteredProducts,
     toast,
     closeToast,
@@ -74,6 +75,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
               formData={formData}
               setFormData={setFormData}
               selectedFiles={selectedFiles}
+              existingImages={existingImages}
               onFileChange={handleFileChange}
               onRemoveFile={handleRemoveFile}
               onSubmit={handleFormSubmit}

@@ -15,6 +15,8 @@ export interface Product {
   color: string;
   active: 'Ativo' | 'Inativo' | string;
   description?: string;
+  image?: string;
+  images?: string[];
 }
 
 export interface ProductTableProps {

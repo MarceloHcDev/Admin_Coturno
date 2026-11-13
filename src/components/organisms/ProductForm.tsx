@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FormEvent } from "react";
+import React, { ChangeEvent, FormEvent, useMemo, useEffect } from "react";
 import { ProductFormData } from "../../hooks/useProdutosCatalogo";
 
 export interface ProductFormProps {
@@ -6,6 +6,7 @@ export interface ProductFormProps {
   formData: ProductFormData;
   setFormData: React.Dispatch<React.SetStateAction<ProductFormData>>;
   selectedFiles: File[];
+  existingImages?: string[];
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (index: number) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
@@ -18,12 +19,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   formData,
   setFormData,
   selectedFiles,
+  existingImages = [],
   onFileChange,
   onRemoveFile,
   onSubmit,
   onCancel,
   saving,
 }) => {
+  // Gera URLs de preview em memória para cada arquivo selecionado
+  const previewUrls = useMemo(() => {
+    return selectedFiles.map((file) => URL.createObjectURL(file));
+  }, [selectedFiles]);
+
+  // Libera a memória quando os arquivos mudam ou o componente desmonta
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
+
   return (
     <div className="w-full bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
       <h2 className="text-xl font-bold text-slate-900">
@@ -223,12 +237,46 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
         </div>
 
-        {/* Imagens do Produto */}
+        {/* Visualização de Fotos Existentes no Modo Edição */}
+        {formMode === "edit" && existingImages.length > 0 && (
+          <div className="flex flex-col space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Fotos Atuais Cadastradas no Banco ({existingImages.length})
+              </span>
+              <span className="text-xs text-slate-500">
+                Galeria atual do produto
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-3 pt-1">
+              {existingImages.map((imgUrl, idx) => (
+                <div
+                  key={idx}
+                  className="relative rounded-xl overflow-hidden border border-slate-200 bg-white shadow-xs w-20 h-20 flex flex-col items-center justify-center shrink-0"
+                >
+                  <img
+                    src={imgUrl}
+                    alt={`Foto atual #${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute bottom-0 inset-x-0 bg-slate-950/70 text-[10px] text-white text-center py-0.5 font-semibold">
+                    #{idx + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 italic pt-1">
+              * Para manter as fotos atuais, basta não anexar novas fotos. Se selecionar novos arquivos abaixo, eles atualizarão a galeria deste produto.
+            </p>
+          </div>
+        )}
+
+        {/* Upload de Imagens com Mini Thumbnails Visuais */}
         <div className="flex flex-col space-y-1">
           <label className="text-sm font-medium text-slate-600">
-            Imagens do Produto{" "}
+            {formMode === "edit" ? "Substituir / Adicionar Novas Imagens" : "Imagens do Produto"}{" "}
             <span className="text-red-500 font-bold">
-              * (Mínimo 2, Máximo 6)
+              {formMode === "create" ? "* (Mínimo 2, Máximo 6)" : "(Opcional na edição - Mín 2, Máx 6 se anexar)"}
             </span>
           </label>
           <div className="flex flex-col gap-2">
@@ -250,8 +298,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </label>
               <span className="text-sm font-medium text-slate-600">
                 {selectedFiles.length === 0
-                  ? "Nenhuma imagem selecionada"
-                  : `${selectedFiles.length} de 6 ${selectedFiles.length === 1 ? "imagem selecionada" : "imagens selecionadas"}`}
+                  ? "Nenhuma nova imagem selecionada"
+                  : `${selectedFiles.length} de 6 ${selectedFiles.length === 1 ? "foto selecionada" : "fotos selecionadas"}`}
               </span>
             </div>
 
@@ -259,28 +307,38 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               Dica: você pode clicar no botão várias vezes para ir adicionando fotos uma por uma.
             </p>
 
-            {/* Previews / Nomes das imagens selecionadas com botão de remoção */}
+            {/* Mini Thumbnails Visuais das Imagens Selecionadas */}
             {selectedFiles.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-3 pt-2">
                 {selectedFiles.map((file, idx) => (
                   <div
                     key={`${file.name}-${idx}`}
-                    className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/80 text-slate-700 pl-2.5 pr-1.5 py-1 rounded text-xs border border-slate-200 transition-colors"
+                    className="relative group flex flex-col items-center bg-white border border-slate-200 hover:border-blue-400 rounded-xl p-1.5 shadow-xs transition-all w-28 shrink-0"
                   >
-                    <span className="font-semibold text-blue-600">
-                      #{idx + 1}
-                    </span>
-                    <span className="truncate max-w-40" title={file.name}>
+                    <div className="w-full h-24 rounded-lg overflow-hidden bg-slate-100 relative">
+                      <img
+                        src={previewUrls[idx]}
+                        alt={file.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute top-1 left-1 bg-blue-600 text-white font-bold text-[10px] px-1.5 py-0.5 rounded shadow-xs">
+                        #{idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveFile(idx)}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/70 hover:bg-red-600 text-white flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                        title="Remover esta foto"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <span
+                      className="text-[11px] text-slate-600 truncate w-full text-center mt-1.5 px-0.5"
+                      title={file.name}
+                    >
                       {file.name}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => onRemoveFile(idx)}
-                      className="w-4 h-4 rounded-full flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 font-bold transition-colors cursor-pointer ml-0.5"
-                      title="Remover esta imagem"
-                    >
-                      ×
-                    </button>
                   </div>
                 ))}
               </div>
