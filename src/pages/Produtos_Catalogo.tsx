@@ -464,7 +464,11 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                     <div className="flex items-center space-x-3">
                       <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center gap-1.5">
                         <span className="font-bold">+</span>
-                        <span>{selectedFiles.length === 0 ? "Adicionar Imagem" : "Adicionar Mais Imagens"}</span>
+                        <span>
+                          {selectedFiles.length === 0
+                            ? "Adicionar Imagem"
+                            : "Adicionar Mais Imagens"}
+                        </span>
                         <input
                           type="file"
                           accept="image/*"
@@ -481,7 +485,8 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                     </div>
 
                     <p className="text-xs text-slate-400">
-                      Dica: você pode clicar no botão várias vezes para ir adicionando fotos uma por uma.
+                      Dica: você pode clicar no botão várias vezes para ir
+                      adicionando fotos uma por uma.
                     </p>
 
                     {/* Previews / Nomes das imagens selecionadas com botão de remoção */}
@@ -495,7 +500,10 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                             <span className="font-semibold text-blue-600">
                               #{idx + 1}
                             </span>
-                            <span className="truncate max-w-40" title={file.name}>
+                            <span
+                              className="truncate max-w-40"
+                              title={file.name}
+                            >
                               {file.name}
                             </span>
                             <button
