@@ -159,26 +159,51 @@ export function useProdutosCatalogo() {
   };
 
   // -------------------------------------------------------------
-  // Handlers de Upload de Imagens
+  // Handlers de Upload e Remoção de Imagens
   // -------------------------------------------------------------
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    if (files.length === 0) return;
+    const rawFiles = e.target.files ? Array.from(e.target.files) : [];
+    if (rawFiles.length === 0) return;
 
-    setSelectedFiles((prev) => {
-      const combined = [...prev, ...files];
-      if (combined.length > 6) {
-        showToast("Você pode adicionar no máximo 6 imagens ao todo.", "warning");
-        return combined.slice(0, 6);
-      }
-      return combined;
-    });
+    const baseCount = formMode === "edit" ? existingImages.length : 0;
+    const currentSelectedCount = selectedFiles.length;
+    const maxAvailable = 6 - (baseCount + currentSelectedCount);
 
+    if (maxAvailable <= 0) {
+      showToast("Você já atingiu o limite máximo de 6 fotos no total.", "warning");
+      e.target.value = "";
+      return;
+    }
+
+    let filesToAdd = rawFiles;
+    if (rawFiles.length > maxAvailable) {
+      showToast(
+        `Você só pode adicionar mais ${maxAvailable} foto(s) para completar o limite de 6.`,
+        "warning",
+      );
+      filesToAdd = rawFiles.slice(0, maxAvailable);
+    }
+
+    setSelectedFiles((prev) => [...prev, ...filesToAdd]);
     e.target.value = "";
   };
 
   const handleRemoveFile = (indexToRemove: number): void => {
     setSelectedFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  const handleRemoveExistingImage = (indexToRemove: number): void => {
+    setExistingImages((prev) => {
+      const updated = prev.filter((_, idx) => idx !== indexToRemove);
+      const totalFotosRestantes = updated.length + selectedFiles.length;
+      if (totalFotosRestantes < 2) {
+        showToast(
+          "Atenção: o produto precisa ter no mínimo 2 fotos. Adicione novas imagens para completar.",
+          "warning",
+        );
+      }
+      return updated;
+    });
   };
 
   // -------------------------------------------------------------
@@ -189,12 +214,20 @@ export function useProdutosCatalogo() {
   ): Promise<void> => {
     e.preventDefault();
 
-    if (
-      formMode === "create" &&
-      (selectedFiles.length < 2 || selectedFiles.length > 6)
-    ) {
+    const totalFotos =
+      (formMode === "edit" ? existingImages.length : 0) + selectedFiles.length;
+
+    if (totalFotos < 2) {
       showToast(
-        "É obrigatório anexar no mínimo 2 e no máximo 6 imagens do produto.",
+        "É obrigatório ter no mínimo 2 imagens para o produto (adicione fotos para completar).",
+        "warning",
+      );
+      return;
+    }
+
+    if (totalFotos > 6) {
+      showToast(
+        "O produto pode ter no máximo 6 imagens no total.",
         "warning",
       );
       return;
@@ -214,6 +247,13 @@ export function useProdutosCatalogo() {
       data.append("stock", String(formData.stock || 0));
       data.append("sizes", formData.sizes);
       data.append("active", formData.active === "Ativo" ? "1" : "0");
+
+      // Se for edição, envia as imagens mantidas do banco
+      if (formMode === "edit") {
+        existingImages.forEach((imgUrl) => {
+          data.append("existing_images[]", imgUrl);
+        });
+      }
 
       if (selectedFiles.length > 0) {
         selectedFiles.forEach((file) => {
@@ -312,6 +352,7 @@ export function useProdutosCatalogo() {
     handleCancelDelete,
     handleFileChange,
     handleRemoveFile,
+    handleRemoveExistingImage,
     handleFormSubmit,
   };
 }

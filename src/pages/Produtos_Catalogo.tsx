@@ -32,6 +32,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
     handleCancelDelete,
     handleFileChange,
     handleRemoveFile,
+    handleRemoveExistingImage,
     handleFormSubmit,
   } = useProdutosCatalogo();
 
@@ -78,6 +79,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
               existingImages={existingImages}
               onFileChange={handleFileChange}
               onRemoveFile={handleRemoveFile}
+              onRemoveExistingImage={handleRemoveExistingImage}
               onSubmit={handleFormSubmit}
               onCancel={handleCloseForm}
               saving={saving}

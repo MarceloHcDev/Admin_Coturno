@@ -9,6 +9,7 @@ export interface ProductFormProps {
   existingImages?: string[];
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (index: number) => void;
+  onRemoveExistingImage?: (index: number) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
   saving: boolean;
@@ -22,6 +23,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   existingImages = [],
   onFileChange,
   onRemoveFile,
+  onRemoveExistingImage,
   onSubmit,
   onCancel,
   saving,
@@ -37,6 +39,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [previewUrls]);
+
+  const totalFotosAtivas =
+    (formMode === "edit" ? existingImages.length : 0) + selectedFiles.length;
+  const slotsRestantes = Math.max(0, 6 - totalFotosAtivas);
 
   return (
     <div className="w-full bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
@@ -237,121 +243,155 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
         </div>
 
-        {/* Visualização de Fotos Existentes no Modo Edição */}
-        {formMode === "edit" && existingImages.length > 0 && (
-          <div className="flex flex-col space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                Fotos Atuais Cadastradas no Banco ({existingImages.length})
+        {/* Seção de Fotos do Produto com Validação Visual */}
+        <div className="space-y-4 pt-2">
+          {/* Status Geral de Fotos */}
+          <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+            <div>
+              <span className="text-sm font-bold text-slate-800">
+                Fotos do Produto
               </span>
-              <span className="text-xs text-slate-500">
-                Galeria atual do produto
+              <span className="text-xs text-slate-400 ml-2">
+                (Mínimo 2, Máximo 6 fotos)
               </span>
             </div>
-            <div className="flex flex-wrap gap-3 pt-1">
-              {existingImages.map((imgUrl, idx) => (
-                <div
-                  key={idx}
-                  className="relative rounded-xl overflow-hidden border border-slate-200 bg-white shadow-xs w-20 h-20 flex flex-col items-center justify-center shrink-0"
-                >
-                  <img
-                    src={imgUrl}
-                    alt={`Foto atual #${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute bottom-0 inset-x-0 bg-slate-950/70 text-[10px] text-white text-center py-0.5 font-semibold">
-                    #{idx + 1}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-slate-500 italic pt-1">
-              * Para manter as fotos atuais, basta não anexar novas fotos. Se selecionar novos arquivos abaixo, eles atualizarão a galeria deste produto.
-            </p>
-          </div>
-        )}
-
-        {/* Upload de Imagens com Mini Thumbnails Visuais */}
-        <div className="flex flex-col space-y-1">
-          <label className="text-sm font-medium text-slate-600">
-            {formMode === "edit" ? "Substituir / Adicionar Novas Imagens" : "Imagens do Produto"}{" "}
-            <span className="text-red-500 font-bold">
-              {formMode === "create" ? "* (Mínimo 2, Máximo 6)" : "(Opcional na edição - Mín 2, Máx 6 se anexar)"}
+            <span
+              className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                totalFotosAtivas >= 2 && totalFotosAtivas <= 6
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-amber-50 text-amber-700 border-amber-200"
+              }`}
+            >
+              {totalFotosAtivas} de 6 fotos {totalFotosAtivas < 2 && "(faltam fotos)"}
             </span>
-          </label>
-          <div className="flex flex-col gap-2">
+          </div>
+
+          {/* Fotos Atuais do Banco (se em edição) */}
+          {formMode === "edit" && existingImages.length > 0 && (
+            <div className="flex flex-col space-y-2 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Fotos Atuais Cadastradas ({existingImages.length})
+                </span>
+                <span className="text-xs text-slate-500">
+                  Clique no <span className="font-bold text-red-600">×</span> para remover fotos do banco
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-3 pt-1">
+                {existingImages.map((imgUrl, idx) => (
+                  <div
+                    key={idx}
+                    className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white shadow-xs w-24 h-24 flex flex-col items-center justify-center shrink-0 transition-transform hover:scale-102"
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`Foto atual #${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute bottom-0 inset-x-0 bg-slate-950/70 text-[10px] text-white text-center py-0.5 font-semibold">
+                      #{idx + 1} Atual
+                    </span>
+                    {onRemoveExistingImage && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveExistingImage(idx)}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/80 hover:bg-red-600 text-white flex items-center justify-center text-xs font-bold transition-colors cursor-pointer shadow-sm"
+                        title="Remover esta foto do produto"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Adição de Novas Fotos */}
+          <div className="flex flex-col space-y-2">
             <div className="flex items-center space-x-3">
-              <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center gap-1.5">
+              <label
+                className={`border font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center gap-1.5 ${
+                  slotsRestantes > 0
+                    ? "cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                    : "cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200 opacity-60"
+                }`}
+              >
                 <span className="font-bold">+</span>
                 <span>
                   {selectedFiles.length === 0
-                    ? "Adicionar Imagem"
-                    : "Adicionar Mais Imagens"}
+                    ? formMode === "edit"
+                      ? `Adicionar Mais Fotos (${slotsRestantes} vaga${slotsRestantes === 1 ? "" : "s"})`
+                      : "Adicionar Imagem"
+                    : `Adicionar Mais (${slotsRestantes} vaga${slotsRestantes === 1 ? "" : "s"})`}
                 </span>
                 <input
                   type="file"
                   accept="image/*"
                   multiple
+                  disabled={slotsRestantes <= 0}
                   className="hidden"
                   onChange={onFileChange}
                 />
               </label>
-              <span className="text-sm font-medium text-slate-600">
-                {selectedFiles.length === 0
-                  ? "Nenhuma nova imagem selecionada"
-                  : `${selectedFiles.length} de 6 ${selectedFiles.length === 1 ? "foto selecionada" : "fotos selecionadas"}`}
+
+              <span className="text-xs text-slate-500">
+                {slotsRestantes > 0
+                  ? `Você ainda pode selecionar mais ${slotsRestantes} foto(s) para completar.`
+                  : "Limite máximo de 6 fotos atingido."}
               </span>
             </div>
 
-            <p className="text-xs text-slate-400">
-              Dica: você pode clicar no botão várias vezes para ir adicionando fotos uma por uma.
-            </p>
-
-            {/* Mini Thumbnails Visuais das Imagens Selecionadas */}
+            {/* Mini Thumbnails Visuais das Novas Fotos Selecionadas */}
             {selectedFiles.length > 0 && (
-              <div className="flex flex-wrap gap-3 pt-2">
-                {selectedFiles.map((file, idx) => (
-                  <div
-                    key={`${file.name}-${idx}`}
-                    className="relative group flex flex-col items-center bg-white border border-slate-200 hover:border-blue-400 rounded-xl p-1.5 shadow-xs transition-all w-28 shrink-0"
-                  >
-                    <div className="w-full h-24 rounded-lg overflow-hidden bg-slate-100 relative">
-                      <img
-                        src={previewUrls[idx]}
-                        alt={file.name}
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute top-1 left-1 bg-blue-600 text-white font-bold text-[10px] px-1.5 py-0.5 rounded shadow-xs">
-                        #{idx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onRemoveFile(idx)}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/70 hover:bg-red-600 text-white flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
-                        title="Remover esta foto"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <span
-                      className="text-[11px] text-slate-600 truncate w-full text-center mt-1.5 px-0.5"
-                      title={file.name}
+              <div className="space-y-1 pt-1">
+                <span className="text-xs font-semibold text-slate-600">
+                  Novas fotos adicionadas para envio ({selectedFiles.length}):
+                </span>
+                <div className="flex flex-wrap gap-3 pt-1">
+                  {selectedFiles.map((file, idx) => (
+                    <div
+                      key={`${file.name}-${idx}`}
+                      className="relative group flex flex-col items-center bg-white border border-slate-200 hover:border-blue-400 rounded-xl p-1.5 shadow-xs transition-all w-28 shrink-0"
                     >
-                      {file.name}
-                    </span>
-                  </div>
-                ))}
+                      <div className="w-full h-24 rounded-lg overflow-hidden bg-slate-100 relative">
+                        <img
+                          src={previewUrls[idx]}
+                          alt={file.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <span className="absolute top-1 left-1 bg-blue-600 text-white font-bold text-[10px] px-1.5 py-0.5 rounded shadow-xs">
+                          Nova #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveFile(idx)}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/70 hover:bg-red-600 text-white flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                          title="Remover esta foto"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <span
+                        className="text-[11px] text-slate-600 truncate w-full text-center mt-1.5 px-0.5"
+                        title={file.name}
+                      >
+                        {file.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* Botões de Ação */}
-        <div className="flex space-x-3 pt-4">
+        <div className="flex space-x-3 pt-4 border-t border-slate-100">
           <button
             type="submit"
-            disabled={saving}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-60"
+            disabled={saving || totalFotosAtivas < 2 || totalFotosAtivas > 6}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {saving
               ? "Salvando..."
