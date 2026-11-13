@@ -43,13 +43,15 @@ export const Toast: React.FC<ToastProps> = ({
   }[type];
 
   return (
-    <div className="fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg transition-all animate-in fade-in slide-in-from-top-2 duration-300 max-w-md ${styles.bg}">
+    <div
+      className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3.5 rounded-xl border shadow-xl transition-all duration-300 max-w-lg ${styles.bg}`}
+    >
       {styles.icon}
-      <span className="text-sm font-medium">{message}</span>
+      <span className="text-sm font-semibold">{message}</span>
       <button
         type="button"
         onClick={onClose}
-        className="ml-auto text-slate-400 hover:text-slate-700 p-0.5 rounded transition-colors"
+        className="ml-auto text-slate-400 hover:text-slate-700 p-0.5 rounded transition-colors cursor-pointer"
         title="Fechar"
       >
         <X className="w-4 h-4" />
