@@ -8,25 +8,31 @@ export const api = axios.create({
   },
 });
 
-// Interceptor para injetar o Bearer Token salvo no localStorage
+// Interceptor para injetar o Bearer Token e garantir Accept: application/json
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("admin_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers.Accept = "application/json";
   return config;
 });
 
-// Interceptor para redirecionar para /login se a sessão expirar (401)
+// Interceptor para redirecionar para /login se a sessão expirar (401, 419)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (
-      error.response?.status === 401 &&
-      window.location.pathname !== "/login"
-    ) {
+    const status = error.response?.status;
+    const isSessionExpired =
+      status === 401 ||
+      status === 419 ||
+      (status === 403 &&
+        typeof error.response?.data?.message === "string" &&
+        error.response.data.message.toLowerCase().includes("token"));
+
+    if (isSessionExpired && window.location.pathname !== "/login") {
       localStorage.removeItem("admin_token");
-      window.location.href = "/login";
+      window.location.href = "/login?session_expired=1";
     }
     return Promise.reject(error);
   },
