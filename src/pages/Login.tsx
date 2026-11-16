@@ -49,8 +49,10 @@ export default function Login(): React.JSX.Element {
         password,
       });
 
-      // Extrai o token da resposta (trata { token } ou { data: { token } })
+      // Extrai o token e a data de expiração da resposta
       const token = response.data?.token || response.data?.data?.token;
+      const expiresAt =
+        response.data?.expires_at || response.data?.data?.expires_at;
 
       if (!token) {
         throw new Error("Token não retornado pelo servidor.");
@@ -58,6 +60,9 @@ export default function Login(): React.JSX.Element {
 
       // Salva no localStorage e segue para o painel
       localStorage.setItem("admin_token", token);
+      if (expiresAt) {
+        localStorage.setItem("admin_token_expires_at", expiresAt);
+      }
       navigate("/admin/produtos", { replace: true });
     } catch (err: unknown) {
       console.error("Erro no login:", err);

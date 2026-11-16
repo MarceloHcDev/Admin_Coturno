@@ -14,6 +14,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activePage }) => {
 
   const handleLogout = (): void => {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_token_expires_at');
     navigate('/login', { replace: true });
   };
 

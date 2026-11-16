@@ -32,6 +32,7 @@ api.interceptors.response.use(
 
     if (isSessionExpired && window.location.pathname !== "/login") {
       localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_token_expires_at");
       window.location.href = "/login?session_expired=1";
     }
     return Promise.reject(error);
