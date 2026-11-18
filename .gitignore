@@ -32,3 +32,6 @@ Thumbs.db
 .cursor/
 .chat/
 *.prompt.md
+CLAUDE.md
+gemini.md
+AGENTS.md
