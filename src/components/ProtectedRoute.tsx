@@ -8,14 +8,14 @@ export default function ProtectedRoute(): React.JSX.Element {
 
   // 1. Verificação instantânea (0ms): checa se a data de expiração do token já venceu
   const isTimeExpired = Boolean(
-    expiresAt && new Date(expiresAt).getTime() <= Date.now()
+    expiresAt && new Date(expiresAt).getTime() <= Date.now(),
   );
 
   const [isValidating, setIsValidating] = useState<boolean>(
-    Boolean(token) && !isTimeExpired
+    Boolean(token) && !isTimeExpired,
   );
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    Boolean(token) && !isTimeExpired
+    Boolean(token) && !isTimeExpired,
   );
   const location = useLocation();
 

@@ -99,7 +99,9 @@ export function useProdutosCatalogo() {
             p.active === "Ativo" || p.status === "ativo" ? "Ativo" : "Inativo",
           price: Number(p.price || 0),
           stock: Number(p.stock || 0),
-          sizes: Array.isArray(p.sizes) ? p.sizes.join(", ") : p.sizes || "38-44",
+          sizes: Array.isArray(p.sizes)
+            ? p.sizes.join(", ")
+            : p.sizes || "38-44",
           color: p.color || "",
           image: formattedImages[0] || "",
           images: formattedImages,
@@ -138,7 +140,9 @@ export function useProdutosCatalogo() {
         color: product.color,
       });
       setSelectedFiles([]);
-      setExistingImages(product.images || (product.image ? [product.image] : []));
+      setExistingImages(
+        product.images || (product.image ? [product.image] : []),
+      );
       setEditingId(id);
       setFormMode("edit");
     }
@@ -170,7 +174,10 @@ export function useProdutosCatalogo() {
     const maxAvailable = 6 - (baseCount + currentSelectedCount);
 
     if (maxAvailable <= 0) {
-      showToast("Você já atingiu o limite máximo de 6 fotos no total.", "warning");
+      showToast(
+        "Você já atingiu o limite máximo de 6 fotos no total.",
+        "warning",
+      );
       e.target.value = "";
       return;
     }
@@ -226,10 +233,7 @@ export function useProdutosCatalogo() {
     }
 
     if (totalFotos > 6) {
-      showToast(
-        "O produto pode ter no máximo 6 imagens no total.",
-        "warning",
-      );
+      showToast("O produto pode ter no máximo 6 imagens no total.", "warning");
       return;
     }
 

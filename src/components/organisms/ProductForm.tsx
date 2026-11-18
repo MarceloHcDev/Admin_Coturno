@@ -262,7 +262,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   : "bg-amber-50 text-amber-700 border-amber-200"
               }`}
             >
-              {totalFotosAtivas} de 6 fotos {totalFotosAtivas < 2 && "(faltam fotos)"}
+              {totalFotosAtivas} de 6 fotos{" "}
+              {totalFotosAtivas < 2 && "(faltam fotos)"}
             </span>
           </div>
 
@@ -274,7 +275,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   Fotos Atuais Cadastradas ({existingImages.length})
                 </span>
                 <span className="text-xs text-slate-500">
-                  Clique no <span className="font-bold text-red-600">×</span> para remover fotos do banco
+                  Clique no <span className="font-bold text-red-600">×</span>{" "}
+                  para remover fotos do banco
                 </span>
               </div>
               <div className="flex flex-wrap gap-3 pt-1">

@@ -66,12 +66,11 @@ export default function Login(): React.JSX.Element {
       navigate("/admin/produtos", { replace: true });
     } catch (err: unknown) {
       console.error("Erro no login:", err);
-      let apiMsg = "Credenciais inválidas. Verifique os dados e tente novamente.";
+      let apiMsg =
+        "Credenciais inválidas. Verifique os dados e tente novamente.";
       if (axios.isAxiosError(err)) {
         apiMsg =
-          err.response?.data?.message ||
-          err.response?.data?.error ||
-          apiMsg;
+          err.response?.data?.message || err.response?.data?.error || apiMsg;
       } else if (err instanceof Error) {
         apiMsg = err.message;
       }
@@ -102,7 +101,8 @@ export default function Login(): React.JSX.Element {
           <div className="mb-6 p-3.5 bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-2.5 rounded">
             <Clock size={18} className="shrink-0 text-amber-600" />
             <span>
-              Sua sessão expirou por inatividade. Por favor, acesse novamente com suas credenciais.
+              Sua sessão expirou por inatividade. Por favor, acesse novamente
+              com suas credenciais.
             </span>
           </div>
         )}
@@ -117,9 +117,14 @@ export default function Login(): React.JSX.Element {
 
         {/* Dica com Credenciais de Teste */}
         <div className="mb-6 p-3 bg-slate-50 border border-slate-200 text-slate-600 text-xs rounded">
-          <p className="font-bold text-slate-800 mb-1">Credenciais de Teste (Admin):</p>
+          <p className="font-bold text-slate-800 mb-1">
+            Credenciais de Teste (Admin):
+          </p>
           <p>
-            E-mail: <code className="text-black font-semibold">admin@coturnosecia.com.br</code>
+            E-mail:{" "}
+            <code className="text-black font-semibold">
+              admin@coturnosecia.com.br
+            </code>
           </p>
           <p>
             Senha: <code className="text-black font-semibold">password</code>

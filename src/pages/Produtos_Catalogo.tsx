@@ -40,11 +40,7 @@ export default function Produtos_Catalogo(): React.JSX.Element {
     <div className="flex min-h-screen bg-slate-50 overflow-x-hidden">
       {/* Notificação Toast */}
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={closeToast}
-        />
+        <Toast message={toast.message} type={toast.type} onClose={closeToast} />
       )}
 
       {/* Modal de Confirmação de Exclusão */}

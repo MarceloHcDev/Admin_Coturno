@@ -1,12 +1,12 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Home_admin from './pages/Home_admin';
-import Produtos_Catalogo from './pages/Produtos_Catalogo';
-import UsuariosGestao from './pages/UsuariosGestao';
-import LogEventos from './pages/LogEventos';
-import { EdicaoImagens } from './pages/Edicao_Imagens';
-import Pedidos_Listagem from './pages/Pedidos_Listagem';
-import Login from './pages/Login';
-import ProtectedRoute from './components/ProtectedRoute';
+import { Routes, Route, Navigate } from "react-router-dom";
+import Home_admin from "./pages/Home_admin";
+import Produtos_Catalogo from "./pages/Produtos_Catalogo";
+import UsuariosGestao from "./pages/UsuariosGestao";
+import LogEventos from "./pages/LogEventos";
+import { EdicaoImagens } from "./pages/Edicao_Imagens";
+import Pedidos_Listagem from "./pages/Pedidos_Listagem";
+import Login from "./pages/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   return (
@@ -33,7 +33,9 @@ export default function App() {
         path="*"
         element={
           <div className="flex items-center justify-center h-screen bg-slate-50 text-slate-800">
-            <p className="text-lg font-medium">Página não encontrada ou em desenvolvimento.</p>
+            <p className="text-lg font-medium">
+              Página não encontrada ou em desenvolvimento.
+            </p>
           </div>
         }
       />
