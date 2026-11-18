@@ -3,6 +3,9 @@ import Sidebar from '../components/organisms/Sidebar';
 import PageHeader from '../components/molecules/PageHeader';
 import SearchInput from '../components/atoms/SearchInput';
 import ProductTable, { Product } from '../components/organisms/ProductTable';
+import { api } from '../services/api';
+
+// Base da URL (VITE_API_URL, já com /api), token e erros ficam centralizados em services/api
 
 export interface ProductFormData {
   name: string;
@@ -24,6 +27,11 @@ export default function Produtos_Catalogo(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [formMode, setFormMode] = useState<FormMode>(null); 
   const [editingId, setEditingId] = useState<string | number | null>(null);
+
+  // Imagens anexadas: posição 0 = Imagem 1, 1 = Imagem 2, 2 = Imagem 3
+  const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null]);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [products, setProducts] = useState<Product[]>([
     { id: 1, name: 'Atalaia Combat', productType: 'Coturno', model: 'Combat X', brand: 'Atalaia', active: 'Ativo', price: 599.90, stock: 45, sizes: '38-44', color: 'Preto/Branco' },
@@ -54,25 +62,26 @@ export default function Produtos_Catalogo(): React.JSX.Element {
         image: (product as any).image || ''
       });
       setEditingId(Number(id));
+      setImageFiles([null, null, null]);
       setFormMode('edit');
     }
   };
   
   const handleOpenCreate = (): void => {
     setFormData({ name: '', productType: '', model: '', brand: '', description: '', active: 'Ativo', price: '', stock: '', sizes: '', color: '', image: '' });
+    setImageFiles([null, null, null]);
     setFormMode('create');
   };
   
   const handleCloseForm = (): void => {
     setFormMode(null);
     setEditingId(null);
+    setImageFiles([null, null, null]);
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>): void => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFormData({ ...formData, image: `/${file.name}` });
-    }
+  const handleFileChange = (slotIndex: number) => (e: ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0] ?? null;
+    setImageFiles(prev => prev.map((current, i) => (i === slotIndex ? file : current)));
   };
 
   const filteredProducts = products.filter(product =>
@@ -80,40 +89,106 @@ export default function Produtos_Catalogo(): React.JSX.Element {
     (product.productType && product.productType.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleFormSubmit = (e: FormEvent<HTMLFormElement>): void => {
+  const handleFormSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
+    setFeedback(null);
+
     const parsedPrice = typeof formData.price === 'number' ? formData.price : parseFloat(formData.price) || 0;
     const parsedStock = typeof formData.stock === 'number' ? formData.stock : parseInt(formData.stock, 10) || 0;
 
-    if (formMode === 'edit' && editingId !== null) {
-      setProducts(products.map(p => p.id === editingId ? { 
-        ...p,
-        name: formData.name,
-        productType: formData.productType,
-        model: formData.model,
-        brand: formData.brand,
-        active: formData.active,
-        sizes: formData.sizes,
-        color: formData.color,
-        price: parsedPrice,
-        stock: parsedStock,
-        id: editingId 
-      } : p));
-    } else {
-      setProducts([...products, { 
-        id: Date.now(),
-        name: formData.name,
-        productType: formData.productType,
-        model: formData.model,
-        brand: formData.brand,
-        active: formData.active,
-        sizes: formData.sizes,
-        color: formData.color,
-        price: parsedPrice,
-        stock: parsedStock,
-      }]);
+    // Imagem 1, 2 e 3 viram os campos image1, image2 e image3 (o back-end nomeia id_1, id_2, id_3)
+    const appendImages = (fd: FormData): boolean => {
+      let hasImages = false;
+      imageFiles.forEach((file, i) => {
+        if (file) {
+          fd.append(`image${i + 1}`, file);
+          hasImages = true;
+        }
+      });
+      return hasImages;
+    };
+
+    setSubmitting(true);
+
+    try {
+      if (formMode === 'edit' && editingId !== null) {
+        // Edição: se houver imagens novas, envia só elas para o endpoint de imagens
+        const fd = new FormData();
+        if (appendImages(fd)) {
+          const data = await api<{ success: boolean; message?: string }>(
+            `/v1/admin/products/${editingId}/image`,
+            { method: 'POST', body: fd },
+          );
+          // 207 (envio parcial) chega aqui como "ok", mas com success = false
+          if (data.success === false) {
+            throw new Error(data.message || 'Erro ao enviar as imagens do produto.');
+          }
+        }
+
+        setProducts(products.map(p => p.id === editingId ? {
+          ...p,
+          name: formData.name,
+          productType: formData.productType,
+          model: formData.model,
+          brand: formData.brand,
+          active: formData.active,
+          sizes: formData.sizes,
+          color: formData.color,
+          price: parsedPrice,
+          stock: parsedStock,
+          id: editingId
+        } : p));
+        setFeedback({ type: 'success', text: 'Produto atualizado com sucesso!' });
+      } else {
+        // Cadastro: envia os dados + imagens; o back-end cria o produto e usa o id para nomear as imagens
+        const fd = new FormData();
+        fd.append('name', formData.name);
+        fd.append('product_type', formData.productType);
+        fd.append('brand', formData.brand);
+        fd.append('description', formData.description);
+        fd.append('base_price', String(parsedPrice));
+        fd.append('active', formData.active === 'Ativo' ? '1' : '0');
+        appendImages(fd);
+
+        const data = await api<{
+          data?: { id: number | string };
+          id?: number | string;
+          image_warning?: string;
+        }>('/v1/admin/products', { method: 'POST', body: fd });
+
+        // ProductResource normalmente devolve { data: { id, ... } }
+        const newId = (data.data?.id ?? data.id) as number | string;
+
+        setProducts([...products, {
+          id: newId,
+          name: formData.name,
+          productType: formData.productType,
+          model: formData.model,
+          brand: formData.brand,
+          active: formData.active,
+          sizes: formData.sizes,
+          color: formData.color,
+          price: parsedPrice,
+          stock: parsedStock,
+        }]);
+
+        setFeedback(
+          data.image_warning
+            ? { type: 'error', text: data.image_warning }
+            : { type: 'success', text: 'Produto cadastrado com sucesso!' }
+        );
+      }
+
+      handleCloseForm();
+    } catch (error) {
+      console.error('Erro ao salvar produto:', error);
+      setFeedback({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Falha na comunicação com o servidor.',
+      });
+    } finally {
+      setSubmitting(false);
     }
-    handleCloseForm();
   };
 
   return (
@@ -128,6 +203,19 @@ export default function Produtos_Catalogo(): React.JSX.Element {
             hideButton={formMode !== null}
             buttonClassName="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors px-4 py-2 text-sm flex items-center shadow-sm"
           />
+
+          {feedback && (
+            <div
+              role="alert"
+              className={`rounded-lg px-4 py-3 text-sm font-medium border ${
+                feedback.type === 'success'
+                  ? 'bg-green-50 text-green-700 border-green-200'
+                  : 'bg-red-50 text-red-700 border-red-200'
+              }`}
+            >
+              {feedback.text}
+            </div>
+          )}
 
           {formMode !== null ? (
             <div className="w-full bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
@@ -283,30 +371,35 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                   </div>
                 </div>
 
-                <div className="flex flex-col space-y-1">
-                  <label className="text-sm font-medium text-slate-600">Imagem do Produto</label>
-                  <div className="flex items-center space-x-3">
-                    <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center">
-                      <span>Anexar Imagem</span>
-                      <input 
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                    <span className="text-sm text-slate-500 truncate max-w-xs">
-                      {formData.image ? formData.image : 'Nenhum arquivo escolhido'}
-                    </span>
+                {[0, 1, 2].map((slotIndex) => (
+                  <div key={slotIndex} className="flex flex-col space-y-1">
+                    <label className="text-sm font-medium text-slate-600">Imagem {slotIndex + 1}</label>
+                    <div className="flex items-center space-x-3">
+                      <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center">
+                        <span>Anexar Imagem</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="hidden"
+                          onChange={handleFileChange(slotIndex)}
+                        />
+                      </label>
+                      <span className="text-sm text-slate-500 truncate max-w-xs">
+                        {imageFiles[slotIndex]?.name ?? 'Nenhum arquivo escolhido'}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ))}
 
                 <div className="flex space-x-3 pt-4">
                   <button 
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                    disabled={submitting}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/60 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
                   >
-                    {formMode === 'edit' ? 'Atualizar produto' : 'Cadastrar Produto'}
+                    {submitting
+                      ? 'Salvando...'
+                      : formMode === 'edit' ? 'Atualizar produto' : 'Cadastrar Produto'}
                   </button>
                   <button 
                     type="button"

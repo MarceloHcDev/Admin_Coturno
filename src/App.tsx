@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
 import Home_admin from './pages/Home_admin';
 import Produtos_Catalogo from './pages/Produtos_Catalogo';
 import UsuariosGestao from './pages/UsuariosGestao';
@@ -9,8 +10,11 @@ import Pedidos_Listagem from './pages/Pedidos_Listagem';
 export default function App() {
   return (
     <Routes>
-      {/* Redirecionamento inicial da raiz administrativa */}
-      <Route path="/" element={<Navigate to="/admin" replace />} />
+      {/* Rota de Login */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Redirecionamento inicial da raiz administrativa para o Login */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
       
       {/* Rotas do Painel Administrativo */}
       <Route path="/admin" element={<Home_admin />} />
