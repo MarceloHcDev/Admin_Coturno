@@ -23,13 +23,40 @@ export interface ProductFormData {
 
 type FormMode = 'create' | 'edit' | null;
 
+// Tipo de cada imagem: principal (vitrine), hover (ao passar o mouse) ou galeria
+type ImageType = 'main' | 'hover' | 'gallery';
+
+interface ImageSlot {
+  file: File | null;
+}
+
+const IMAGE_SLOTS = 6;
+// Imagem 1 (principal) e 2 (hover) são obrigatórias no cadastro; as demais são opcionais
+const REQUIRED_SLOTS = 2;
+
+// Tipo fixo por posição: Imagem 1 = principal, Imagem 2 = hover, demais = galeria
+const getImageType = (slotIndex: number): ImageType => {
+  if (slotIndex === 0) return 'main';
+  if (slotIndex === 1) return 'hover';
+  return 'gallery';
+};
+
+const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
+  main: 'Principal',
+  hover: 'Hover',
+  gallery: 'Galeria',
+};
+
+const createEmptySlots = (): ImageSlot[] =>
+  Array.from({ length: IMAGE_SLOTS }, () => ({ file: null }));
+
 export default function Produtos_Catalogo(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [formMode, setFormMode] = useState<FormMode>(null); 
   const [editingId, setEditingId] = useState<string | number | null>(null);
 
-  // Imagens anexadas: posição 0 = Imagem 1, 1 = Imagem 2, 2 = Imagem 3
-  const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null]);
+  // Imagens anexadas: 6 slots, cada um com arquivo e tipo
+  const [imageSlots, setImageSlots] = useState<ImageSlot[]>(createEmptySlots);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -62,26 +89,26 @@ export default function Produtos_Catalogo(): React.JSX.Element {
         image: (product as any).image || ''
       });
       setEditingId(Number(id));
-      setImageFiles([null, null, null]);
+      setImageSlots(createEmptySlots());
       setFormMode('edit');
     }
   };
   
   const handleOpenCreate = (): void => {
     setFormData({ name: '', productType: '', model: '', brand: '', description: '', active: 'Ativo', price: '', stock: '', sizes: '', color: '', image: '' });
-    setImageFiles([null, null, null]);
+    setImageSlots(createEmptySlots());
     setFormMode('create');
   };
   
   const handleCloseForm = (): void => {
     setFormMode(null);
     setEditingId(null);
-    setImageFiles([null, null, null]);
+    setImageSlots(createEmptySlots());
   };
 
   const handleFileChange = (slotIndex: number) => (e: ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files?.[0] ?? null;
-    setImageFiles(prev => prev.map((current, i) => (i === slotIndex ? file : current)));
+    setImageSlots(prev => prev.map((slot, i) => (i === slotIndex ? { ...slot, file } : slot)));
   };
 
   const filteredProducts = products.filter(product =>
@@ -93,15 +120,27 @@ export default function Produtos_Catalogo(): React.JSX.Element {
     e.preventDefault();
     setFeedback(null);
 
+    // Cadastro exige as imagens 1 (principal) e 2 (hover).
+    // Na edição só são enviadas as imagens novas, então a exigência não se aplica.
+    if (formMode === 'create') {
+      const faltando = imageSlots.slice(0, REQUIRED_SLOTS).some((slot) => slot.file === null);
+      if (faltando) {
+        setFeedback({ type: 'error', text: 'As imagens 1 (principal) e 2 (hover) são obrigatórias.' });
+        return;
+      }
+    }
+
     const parsedPrice = typeof formData.price === 'number' ? formData.price : parseFloat(formData.price) || 0;
     const parsedStock = typeof formData.stock === 'number' ? formData.stock : parseInt(formData.stock, 10) || 0;
 
-    // Imagem 1, 2 e 3 viram os campos image1, image2 e image3 (o back-end nomeia id_1, id_2, id_3)
+    // Cada slot vira images[i][file], images[i][type] e images[i][position]
     const appendImages = (fd: FormData): boolean => {
       let hasImages = false;
-      imageFiles.forEach((file, i) => {
-        if (file) {
-          fd.append(`image${i + 1}`, file);
+      imageSlots.forEach((slot, i) => {
+        if (slot.file) {
+          fd.append(`images[${i}][file]`, slot.file);
+          fd.append(`images[${i}][type]`, getImageType(i));
+          fd.append(`images[${i}][position]`, String(i));
           hasImages = true;
         }
       });
@@ -371,25 +410,46 @@ export default function Produtos_Catalogo(): React.JSX.Element {
                   </div>
                 </div>
 
-                {[0, 1, 2].map((slotIndex) => (
-                  <div key={slotIndex} className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Imagem {slotIndex + 1}</label>
-                    <div className="flex items-center space-x-3">
-                      <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center">
-                        <span>Anexar Imagem</span>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          className="hidden"
-                          onChange={handleFileChange(slotIndex)}
-                        />
-                      </label>
-                      <span className="text-sm text-slate-500 truncate max-w-xs">
-                        {imageFiles[slotIndex]?.name ?? 'Nenhum arquivo escolhido'}
-                      </span>
-                    </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-600">
+                    Imagens do produto <span className="text-slate-400 font-normal">(imagens 1 e 2 são obrigatórias)</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {imageSlots.map((slot, slotIndex) => (
+                      <div
+                        key={slotIndex}
+                        className="flex flex-col space-y-3 p-3 border border-slate-200 rounded-lg bg-slate-50/50"
+                      >
+                        <span className="text-sm font-semibold text-slate-700">
+                          Imagem {slotIndex + 1}
+                          {slotIndex < REQUIRED_SLOTS && <span className="text-rose-600"> *</span>}
+                        </span>
+
+                        <div className="flex items-center space-x-3">
+                          <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium px-4 py-2 rounded-lg transition-colors text-sm flex items-center justify-center shrink-0">
+                            <span>Anexar Imagem</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={handleFileChange(slotIndex)}
+                            />
+                          </label>
+                          <span className="text-sm text-slate-500 truncate min-w-0">
+                            {slot.file?.name ?? 'Nenhum arquivo escolhido'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col space-y-1">
+                          <span className="text-xs font-medium text-slate-500">Tipo da imagem</span>
+                          <span className="p-2 border border-slate-200 rounded-lg bg-white text-sm text-slate-700">
+                            {IMAGE_TYPE_LABELS[getImageType(slotIndex)]}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
 
                 <div className="flex space-x-3 pt-4">
                   <button 

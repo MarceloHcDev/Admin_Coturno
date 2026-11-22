@@ -88,14 +88,14 @@ export async function api<T>(
 
 export const authService = {
   login: (email: string, password: string) =>
-    api<AuthResponse>('/login', {
+    api<AuthResponse>('/v1/admin/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
 
   logout: async () => {
     try {
-      await api<{ message: string }>('/logout', { method: 'POST' });
+      await api<{ message: string }>('/v1/admin/auth/logout', { method: 'POST' });
     } finally {
       authStorage.clear();
     }
