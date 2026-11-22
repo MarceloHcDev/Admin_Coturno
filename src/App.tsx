@@ -11,7 +11,7 @@ export default function App() {
     <Routes>
 
       {/* Redirecionamento inicial da raiz administrativa para o Login */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Navigate to="/admin" replace />} />
       
       {/* Rotas do Painel Administrativo */}
       <Route path="/admin" element={<Home_admin />} />
