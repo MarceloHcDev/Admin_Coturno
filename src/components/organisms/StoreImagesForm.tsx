@@ -1,10 +1,7 @@
 // src/components/organisms/StoreImagesForm.tsx
 import React, { useState } from 'react';
 import { ImageUploadInput } from '../atoms/ImageUploadInput';
-
-
-//ignore o erro abaixo. 
-const API_URL = import.meta.env.VITE_API_URL;
+import { api, ApiError } from '../../services/api';
 
 export const StoreImagesForm: React.FC = () => {
   const [hero1File, setHero1File] = useState<File | null>(null);
@@ -42,17 +39,13 @@ export const StoreImagesForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/upload-store-images`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          Accept: 'application/json',
-        },
-      });
+      // A base da URL (VITE_API_URL, já com /api), o token e o tratamento de erro vêm de services/api
+      const data = await api<{ success: boolean; urls: unknown }>(
+        '/v1/admin/upload-store-images',
+        { method: 'POST', body: formData },
+      );
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
         setStatusMessage({
           type: 'success',
           text: 'Imagens enviadas e atualizadas no Cloudinary com sucesso!',
@@ -61,14 +54,17 @@ export const StoreImagesForm: React.FC = () => {
       } else {
         setStatusMessage({
           type: 'error',
-          text: data.message || data.error || 'Erro ao realizar o envio das imagens.',
+          text: 'Erro ao realizar o envio das imagens.',
         });
       }
     } catch (error) {
       console.error('Erro na requisição:', error);
       setStatusMessage({
         type: 'error',
-        text: 'Falha na comunicação com o servidor. Verifique a conexão com o back-end.',
+        text:
+          error instanceof ApiError
+            ? error.message
+            : 'Falha na comunicação com o servidor. Verifique a conexão com o back-end.',
       });
     } finally {
       setLoading(false);
