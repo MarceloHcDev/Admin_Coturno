@@ -94,6 +94,29 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </select>
           </div>
 
+          {/* Tipo de Terreno */}
+          <div className="flex flex-col space-y-1">
+            <label className="text-sm font-medium text-slate-600">
+              Tipo de Terreno
+            </label>
+            <select
+              className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
+              value={formData.terrainType}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  terrainType: e.target.value,
+                })
+              }
+            >
+              <option value="">Selecione o terreno</option>
+              <option value="Urbano/Asfalto">Urbano/Asfalto</option>
+              <option value="Trilha/Lama">Trilha/Lama</option>
+              <option value="Tático/Militar">Tático/Militar</option>
+              <option value="Misto">Misto</option>
+            </select>
+          </div>
+
           {/* Modelo */}
           <div className="flex flex-col space-y-1">
             <label className="text-sm font-medium text-slate-600">Modelo</label>
@@ -128,10 +151,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </select>
           </div>
 
-          {/* Preço */}
+          {/* Preço de Venda */}
           <div className="flex flex-col space-y-1">
             <label className="text-sm font-medium text-slate-600">
-              Preço (R$)
+              Preço de Venda (R$)
             </label>
             <input
               type="number"
@@ -143,6 +166,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 setFormData({ ...formData, price: e.target.value })
               }
               required
+            />
+          </div>
+
+          {/* Preço de Custo */}
+          <div className="flex flex-col space-y-1">
+            <label className="text-sm font-medium text-slate-600">
+              Preço de Custo (R$)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900"
+              value={formData.costPrice}
+              onChange={(e) =>
+                setFormData({ ...formData, costPrice: e.target.value })
+              }
             />
           </div>
 

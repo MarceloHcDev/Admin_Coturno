@@ -7,9 +7,11 @@ export interface Product {
   id: string | number;
   name: string;
   productType: string;
+  terrainType?: string;
   brand: string;
   model: string;
   price: number | string;
+  costPrice?: number | string;
   stock: number | string;
   sizes: string;
   color: string;
@@ -55,7 +57,12 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
               {/* Tipo do Produto */}
               <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
-                {product.productType}
+                <div className="font-medium text-slate-900">{product.productType}</div>
+                {product.terrainType && (
+                  <div className="text-xs text-blue-600 font-medium">
+                    {product.terrainType}
+                  </div>
+                )}
               </td>
 
               {/* Marca / Modelo */}
@@ -68,10 +75,21 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
               {/* Preço */}
               <td className="py-3 px-4 font-medium text-slate-900 whitespace-nowrap">
-                {Number(product.price || 0).toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })}
+                <div>
+                  {Number(product.price || 0).toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })}
+                </div>
+                {product.costPrice ? (
+                  <div className="text-xs text-slate-400 font-normal">
+                    Custo:{" "}
+                    {Number(product.costPrice).toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })}
+                  </div>
+                ) : null}
               </td>
 
               {/* Estoque */}

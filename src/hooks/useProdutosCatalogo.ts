@@ -6,11 +6,13 @@ import { ToastType } from "../components/molecules/Toast";
 export interface ProductFormData {
   name: string;
   productType: string;
+  terrainType: string;
   model: string;
   brand: string;
   description: string;
   active: "Ativo" | "Inativo" | string;
   price: number | string;
+  costPrice: number | string;
   stock: number | string;
   sizes: string;
   color: string;
@@ -26,11 +28,13 @@ export interface ToastState {
 const initialFormData: ProductFormData = {
   name: "",
   productType: "",
+  terrainType: "",
   model: "",
   brand: "",
   description: "",
   active: "Ativo",
   price: "",
+  costPrice: "",
   stock: "",
   sizes: "",
   color: "",
@@ -92,12 +96,19 @@ export function useProdutosCatalogo() {
           id: p.id,
           name: p.name || p.model || "Sem Nome",
           productType: p.productType || p.product_type || "Geral",
+          terrainType: p.terrainType || p.terrain_type || "",
           model: p.model || "",
           brand: p.brand || "",
           description: p.description || "",
           active:
             p.active === "Ativo" || p.status === "ativo" ? "Ativo" : "Inativo",
           price: Number(p.price || 0),
+          costPrice:
+            p.costPrice !== undefined
+              ? p.costPrice
+              : p.cost_price !== undefined
+                ? p.cost_price
+                : "",
           stock: Number(p.stock || 0),
           sizes: Array.isArray(p.sizes)
             ? p.sizes.join(", ")
@@ -130,11 +141,13 @@ export function useProdutosCatalogo() {
       setFormData({
         name: product.name,
         productType: product.productType,
+        terrainType: product.terrainType || "",
         model: product.model,
         brand: product.brand,
         description: product.description || "",
         active: product.active,
         price: product.price,
+        costPrice: product.costPrice !== undefined ? product.costPrice : "",
         stock: product.stock,
         sizes: product.sizes,
         color: product.color,
@@ -244,10 +257,16 @@ export function useProdutosCatalogo() {
       data.append("name", formData.name);
       data.append("model", formData.model || formData.name);
       data.append("product_type", formData.productType);
+      if (formData.terrainType) {
+        data.append("terrain_type", formData.terrainType);
+      }
       data.append("brand", formData.brand);
       data.append("description", formData.description || "Sem descrição");
       data.append("color", formData.color);
       data.append("price", String(formData.price || 0));
+      if (formData.costPrice !== "" && formData.costPrice !== undefined) {
+        data.append("cost_price", String(formData.costPrice));
+      }
       data.append("stock", String(formData.stock || 0));
       data.append("sizes", formData.sizes);
       data.append("active", formData.active === "Ativo" ? "1" : "0");
