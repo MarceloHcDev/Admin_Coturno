@@ -1,12 +1,18 @@
-export type ProductStatus = 'Em Estoque' | 'Baixo Estoque' | 'Esgotado';
-
 export interface Product {
   id: string | number;
   name: string;
-  category: string;
+  productType: string;
+  terrainType?: string;
+  brand: string;
   model: string;
+  price: number | string;
+  costPrice?: number | string;
+  stock: number | string;
+  sizes: string;
+  grade?: Array<{ size: number; stock: number }>;
   color: string;
-  price: number;
-  stock: number;
-  status: ProductStatus;
+  active: 'Ativo' | 'Inativo' | string;
+  description?: string;
+  image?: string;
+  images?: string[];
 }
