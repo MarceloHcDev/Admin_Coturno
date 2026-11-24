@@ -1,5 +1,5 @@
-import React, { ChangeEvent, FormEvent, useMemo, useEffect } from "react";
-import { ProductFormData } from "../../hooks/useProdutosCatalogo";
+import React, { ChangeEvent, FormEvent, useMemo, useEffect, useState, useRef } from "react";
+import { ProductFormData, AVAILABLE_SIZES } from "../../hooks/useProdutosCatalogo";
 
 export interface ProductFormProps {
   formMode: "create" | "edit";
@@ -7,6 +7,8 @@ export interface ProductFormProps {
   setFormData: React.Dispatch<React.SetStateAction<ProductFormData>>;
   selectedFiles: File[];
   existingImages?: string[];
+  topMarcas?: string[];
+  topTipos?: string[];
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (index: number) => void;
   onRemoveExistingImage?: (index: number) => void;
@@ -21,6 +23,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   setFormData,
   selectedFiles,
   existingImages = [],
+  topMarcas = [],
+  topTipos = [],
   onFileChange,
   onRemoveFile,
   onRemoveExistingImage,
@@ -43,6 +47,106 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const totalFotosAtivas =
     (formMode === "edit" ? existingImages.length : 0) + selectedFiles.length;
   const slotsRestantes = Math.max(0, 6 - totalFotosAtivas);
+
+  const [bulkQuantity, setBulkQuantity] = useState<string>("5");
+  const [activePopup, setActivePopup] = useState<"tipo" | "terreno" | "marca" | null>(null);
+
+  const tipoRef = useRef<HTMLDivElement>(null);
+  const terrenoRef = useRef<HTMLDivElement>(null);
+  const marcaRef = useRef<HTMLDivElement>(null);
+
+  // Fecha o popup somente quando o usuário clica fora do campo correspondente
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        activePopup === "tipo" &&
+        tipoRef.current &&
+        !tipoRef.current.contains(target)
+      ) {
+        setActivePopup(null);
+      } else if (
+        activePopup === "terreno" &&
+        terrenoRef.current &&
+        !terrenoRef.current.contains(target)
+      ) {
+        setActivePopup(null);
+      } else if (
+        activePopup === "marca" &&
+        marcaRef.current &&
+        !marcaRef.current.contains(target)
+      ) {
+        setActivePopup(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [activePopup]);
+
+  // Calcula o total de estoque a partir da grade
+  const totalGradeStock = useMemo(() => {
+    if (!formData.grade) return 0;
+    return Object.values(formData.grade).reduce(
+      (acc, val) => acc + (Number(val) || 0),
+      0
+    );
+  }, [formData.grade]);
+
+  const handleSizeStockChange = (size: number, qty: number) => {
+    const updatedGrade = { ...(formData.grade || {}), [size]: qty };
+    const total = Object.values(updatedGrade).reduce(
+      (acc, val) => acc + (Number(val) || 0),
+      0
+    );
+    const activeSizes = Object.entries(updatedGrade)
+      .filter(([_, q]) => Number(q) > 0)
+      .map(([s]) => s)
+      .join(", ");
+
+    setFormData((prev) => ({
+      ...prev,
+      grade: updatedGrade,
+      stock: total,
+      sizes: activeSizes,
+    }));
+  };
+
+  const handleApplyToAll = (qty: number) => {
+    const updatedGrade: Record<number, number> = {};
+    AVAILABLE_SIZES.forEach((s) => (updatedGrade[s] = qty));
+    const total = qty * AVAILABLE_SIZES.length;
+    const activeSizes = qty > 0 ? AVAILABLE_SIZES.join(", ") : "";
+
+    setFormData((prev) => ({
+      ...prev,
+      grade: updatedGrade,
+      stock: total,
+      sizes: activeSizes,
+    }));
+  };
+
+  const handleApplyDefault37to44 = (qty: number = 5) => {
+    const updatedGrade: Record<number, number> = {};
+    AVAILABLE_SIZES.forEach((s) => {
+      updatedGrade[s] = s >= 37 && s <= 44 ? qty : 0;
+    });
+    const total = qty * 8;
+    const activeSizes = "37, 38, 39, 40, 41, 42, 43, 44";
+
+    setFormData((prev) => ({
+      ...prev,
+      grade: updatedGrade,
+      stock: total,
+      sizes: activeSizes,
+    }));
+  };
+
+  const handleClearAll = () => {
+    handleApplyToAll(0);
+  };
 
   return (
     <div className="w-full bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
@@ -70,13 +174,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Tipo do Produto */}
-          <div className="flex flex-col space-y-1">
+          <div ref={tipoRef} className="flex flex-col space-y-1 relative">
             <label className="text-sm font-medium text-slate-600">
               Tipo do produto
             </label>
-            <select
+            <input
+              type="text"
+              placeholder="Selecione ou digite o tipo..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.productType}
+              onFocus={() => setActivePopup("tipo")}
+              onClick={() => setActivePopup("tipo")}
               onChange={(e) =>
                 setFormData({
                   ...formData,
@@ -84,14 +192,98 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 })
               }
               required
-            >
-              <option value="">Selecione um tipo</option>
-              <option value="Coturno">Coturno</option>
-              <option value="Borzeguim">Borzeguim</option>
-              <option value="Tênis Esportivo">Tênis Esportivo</option>
-              <option value="Sapatos Sociais">Sapatos Sociais</option>
-              <option value="Sandálias">Sandálias</option>
-            </select>
+            />
+            {activePopup === "tipo" && topTipos && topTipos.length > 0 && (
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
+                  <span className="text-[11px] font-bold text-slate-700">
+                    Mais frequentes:
+                  </span>
+                  <span className="text-[10px] text-blue-600 font-medium">
+                    Clique para selecionar ou digite
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {topTipos.map((tipo) => (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, productType: tipo }));
+                        setActivePopup(null);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                        formData.productType?.toLowerCase() === tipo.toLowerCase()
+                          ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                          : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      {tipo}
+                    </button>
+                  ))}
+                </div>
+                <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                  💡 Clique em uma opção acima ou digite livremente no campo.
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tipo de Terreno */}
+          <div ref={terrenoRef} className="flex flex-col space-y-1 relative">
+            <label className="text-sm font-medium text-slate-600">
+              Tipo de Terreno
+            </label>
+            <input
+              type="text"
+              placeholder="Selecione ou digite o terreno..."
+              className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
+              value={formData.terrainType}
+              onFocus={() => setActivePopup("terreno")}
+              onClick={() => setActivePopup("terreno")}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  terrainType: e.target.value,
+                })
+              }
+            />
+            {activePopup === "terreno" && (
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
+                  <span className="text-[11px] font-bold text-slate-700">
+                    Opções de Terreno:
+                  </span>
+                  <span className="text-[10px] text-blue-600 font-medium">
+                    Clique para selecionar ou digite
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Multiterreno", "Tático/Militar", "Urbano/Asfalto", "Trilha/Lama"].map(
+                    (terreno) => (
+                      <button
+                        key={terreno}
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, terrainType: terreno }));
+                          setActivePopup(null);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                          formData.terrainType?.toLowerCase() === terreno.toLowerCase()
+                            ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                            : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                        }`}
+                      >
+                        {terreno}
+                      </button>
+                    )
+                  )}
+                </div>
+                <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                  💡 Clique em uma opção acima ou digite livremente no campo.
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Modelo */}
@@ -109,29 +301,60 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Marca */}
-          <div className="flex flex-col space-y-1">
+          <div ref={marcaRef} className="flex flex-col space-y-1 relative">
             <label className="text-sm font-medium text-slate-600">Marca</label>
-            <select
+            <input
+              type="text"
+              placeholder="Selecione ou digite a marca..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.brand}
+              onFocus={() => setActivePopup("marca")}
+              onClick={() => setActivePopup("marca")}
               onChange={(e) =>
                 setFormData({ ...formData, brand: e.target.value })
               }
               required
-            >
-              <option value="">Selecione uma marca</option>
-              <option value="Atalaia">Atalaia</option>
-              <option value="Acero">Acero</option>
-              <option value="Bull Terrier">Bull Terrier</option>
-              <option value="Oakley">Oakley</option>
-              <option value="Macboot">Macboot</option>
-            </select>
+            />
+            {activePopup === "marca" && topMarcas && topMarcas.length > 0 && (
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
+                  <span className="text-[11px] font-bold text-slate-700">
+                    Mais frequentes:
+                  </span>
+                  <span className="text-[10px] text-blue-600 font-medium">
+                    Clique para selecionar ou digite
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {topMarcas.map((marca) => (
+                    <button
+                      key={marca}
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, brand: marca }));
+                        setActivePopup(null);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                        formData.brand?.toLowerCase() === marca.toLowerCase()
+                          ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                          : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      {marca}
+                    </button>
+                  ))}
+                </div>
+                <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                  💡 Clique em uma opção acima ou digite livremente no campo.
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Preço */}
+          {/* Preço de Venda */}
           <div className="flex flex-col space-y-1">
             <label className="text-sm font-medium text-slate-600">
-              Preço (R$)
+              Preço de Venda (R$)
             </label>
             <input
               type="number"
@@ -146,43 +369,26 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             />
           </div>
 
-          {/* Quantidade em Estoque */}
+          {/* Preço de Custo */}
           <div className="flex flex-col space-y-1">
             <label className="text-sm font-medium text-slate-600">
-              Quantidade em Estoque
+              Preço de Custo (R$)
             </label>
             <input
               type="number"
-              placeholder="0"
+              step="0.01"
+              placeholder="0.00"
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900"
-              value={formData.stock}
+              value={formData.costPrice}
               onChange={(e) =>
-                setFormData({ ...formData, stock: e.target.value })
+                setFormData({ ...formData, costPrice: e.target.value })
               }
-              required
-            />
-          </div>
-
-          {/* Tamanhos Disponíveis */}
-          <div className="flex flex-col space-y-1">
-            <label className="text-sm font-medium text-slate-600">
-              Tamanhos Disponíveis
-            </label>
-            <input
-              type="text"
-              placeholder="Ex: 38, 39, 40, 41, 42"
-              className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900"
-              value={formData.sizes}
-              onChange={(e) =>
-                setFormData({ ...formData, sizes: e.target.value })
-              }
-              required
             />
           </div>
 
           {/* Cor */}
           <div className="flex flex-col space-y-1">
-            <label className="text-sm font-medium text-slate-600">Cor</label>
+            <label className="text-sm font-medium text-slate-600">Cor Predominante</label>
             <input
               type="text"
               placeholder="Ex: Preto"
@@ -193,6 +399,107 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               }
               required
             />
+          </div>
+        </div>
+
+        {/* Grade de Numeração e Estoque por Tamanho (35 ao 46) */}
+        <div className="flex flex-col space-y-3 p-4 bg-slate-50/80 border border-slate-200/80 rounded-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-bold text-slate-800">
+                  Grade de Numeração e Estoque por Tamanho (35 ao 46)
+                </label>
+                <span className="text-xs bg-blue-100 text-blue-700 font-bold px-2.5 py-0.5 rounded-full">
+                  Total: {totalGradeStock} pares
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Defina a quantidade exata para cada numeração. Os tamanhos com quantidade maior que zero serão exibidos na loja.
+              </p>
+            </div>
+
+            {/* Ações rápidas */}
+            <div className="flex items-center flex-wrap gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => handleApplyDefault37to44(5)}
+                className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg font-medium transition-colors cursor-pointer"
+                title="Aplica 5 unidades nos tamanhos de 37 a 44 e zera os outros"
+              >
+                Padrão (37 ao 44)
+              </button>
+
+              <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Qtd"
+                  className="w-12 px-1.5 py-1 text-center text-slate-800 outline-none text-xs"
+                  value={bulkQuantity}
+                  onChange={(e) => setBulkQuantity(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const q = Math.max(0, parseInt(bulkQuantity || "0", 10));
+                    handleApplyToAll(q);
+                  }}
+                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium border-l border-slate-200 transition-colors cursor-pointer"
+                >
+                  Aplicar a Todos
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="px-2 py-1.5 text-rose-600 hover:bg-rose-50 rounded-lg font-medium transition-colors cursor-pointer"
+              >
+                Zerar
+              </button>
+            </div>
+          </div>
+
+          {/* Grid com os 12 tamanhos */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 pt-1">
+            {AVAILABLE_SIZES.map((size) => {
+              const qty = formData.grade?.[size] ?? 0;
+              const hasStock = qty > 0;
+              return (
+                <div
+                  key={size}
+                  className={`flex flex-col items-center justify-between p-2 rounded-lg border transition-all ${
+                    hasStock
+                      ? "bg-white border-blue-400 shadow-xs ring-1 ring-blue-400/20"
+                      : "bg-white/60 border-slate-200 opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <span
+                    className={`text-xs font-bold ${
+                      hasStock ? "text-blue-700" : "text-slate-600"
+                    }`}
+                  >
+                    Nº {size}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="9999"
+                    className="w-full text-center mt-1 p-1 text-sm font-semibold border border-slate-200 rounded focus:border-blue-500 focus:outline-none text-slate-900 bg-white"
+                    value={qty === 0 ? "" : qty}
+                    placeholder="0"
+                    onChange={(e) => {
+                      const val = Math.max(0, parseInt(e.target.value || "0", 10));
+                      handleSizeStockChange(size, isNaN(val) ? 0 : val);
+                    }}
+                  />
+                  <span className="text-[10px] text-slate-400 mt-0.5">
+                    {hasStock ? `${qty} un.` : "0 un."}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 

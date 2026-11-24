@@ -3,16 +3,29 @@ import { Product } from "../components/organisms/ProductTable";
 import { api } from "../services/api";
 import { ToastType } from "../components/molecules/Toast";
 
+export const AVAILABLE_SIZES = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46];
+
+export const createInitialGrade = (): Record<number, number> => {
+  const g: Record<number, number> = {};
+  AVAILABLE_SIZES.forEach((s) => {
+    g[s] = s >= 37 && s <= 44 ? 5 : 0;
+  });
+  return g;
+};
+
 export interface ProductFormData {
   name: string;
   productType: string;
+  terrainType: string;
   model: string;
   brand: string;
   description: string;
   active: "Ativo" | "Inativo" | string;
   price: number | string;
+  costPrice: number | string;
   stock: number | string;
   sizes: string;
+  grade: Record<number, number>;
   color: string;
 }
 
@@ -26,13 +39,16 @@ export interface ToastState {
 const initialFormData: ProductFormData = {
   name: "",
   productType: "",
+  terrainType: "",
   model: "",
   brand: "",
   description: "",
   active: "Ativo",
   price: "",
-  stock: "",
-  sizes: "",
+  costPrice: "",
+  stock: 40,
+  sizes: "37, 38, 39, 40, 41, 42, 43, 44",
+  grade: createInitialGrade(),
   color: "",
 };
 
@@ -92,16 +108,24 @@ export function useProdutosCatalogo() {
           id: p.id,
           name: p.name || p.model || "Sem Nome",
           productType: p.productType || p.product_type || "Geral",
+          terrainType: p.terrainType || p.terrain_type || "",
           model: p.model || "",
           brand: p.brand || "",
           description: p.description || "",
           active:
             p.active === "Ativo" || p.status === "ativo" ? "Ativo" : "Inativo",
           price: Number(p.price || 0),
+          costPrice:
+            p.costPrice !== undefined
+              ? p.costPrice
+              : p.cost_price !== undefined
+                ? p.cost_price
+                : "",
           stock: Number(p.stock || 0),
           sizes: Array.isArray(p.sizes)
             ? p.sizes.join(", ")
             : p.sizes || "38-44",
+          grade: Array.isArray(p.grade) ? p.grade : [],
           color: p.color || "",
           image: formattedImages[0] || "",
           images: formattedImages,
@@ -127,16 +151,42 @@ export function useProdutosCatalogo() {
   const handleEdit = (id: string | number): void => {
     const product = products.find((p) => String(p.id) === String(id));
     if (product) {
+      const initialG: Record<number, number> = {};
+      AVAILABLE_SIZES.forEach((s) => (initialG[s] = 0));
+
+      if (Array.isArray(product.grade) && product.grade.length > 0) {
+        product.grade.forEach((item: any) => {
+          const s = Number(item.size || item.tamanho);
+          if (AVAILABLE_SIZES.includes(s)) {
+            initialG[s] = Number(item.stock || item.quantidade || 0);
+          }
+        });
+      } else if (product.sizes) {
+        const parsedSizes = product.sizes
+          .split(",")
+          .map((s) => Number(s.trim()))
+          .filter((n) => !isNaN(n) && AVAILABLE_SIZES.includes(n));
+        const total = Number(product.stock) || 0;
+        const each =
+          parsedSizes.length > 0
+            ? Math.max(1, Math.round(total / parsedSizes.length))
+            : 0;
+        parsedSizes.forEach((s) => (initialG[s] = each));
+      }
+
       setFormData({
         name: product.name,
         productType: product.productType,
+        terrainType: product.terrainType || "",
         model: product.model,
         brand: product.brand,
         description: product.description || "",
         active: product.active,
         price: product.price,
+        costPrice: product.costPrice !== undefined ? product.costPrice : "",
         stock: product.stock,
         sizes: product.sizes,
+        grade: initialG,
         color: product.color,
       });
       setSelectedFiles([]);
@@ -244,12 +294,33 @@ export function useProdutosCatalogo() {
       data.append("name", formData.name);
       data.append("model", formData.model || formData.name);
       data.append("product_type", formData.productType);
+      if (formData.terrainType) {
+        data.append("terrain_type", formData.terrainType);
+      }
       data.append("brand", formData.brand);
       data.append("description", formData.description || "Sem descrição");
       data.append("color", formData.color);
       data.append("price", String(formData.price || 0));
-      data.append("stock", String(formData.stock || 0));
-      data.append("sizes", formData.sizes);
+      if (formData.costPrice !== "" && formData.costPrice !== undefined) {
+        data.append("cost_price", String(formData.costPrice));
+      }
+
+      // Processa a grade de tamanhos e quantidades
+      const activeItems = Object.entries(formData.grade || {})
+        .map(([s, q]) => ({ size: Number(s), stock: Number(q) || 0 }))
+        .filter((item) => item.stock > 0);
+
+      const totalStock = activeItems.reduce((acc, item) => acc + item.stock, 0);
+      const sizesString = activeItems.map((item) => item.size).join(", ");
+
+      data.append("stock", String(totalStock));
+      data.append("sizes", sizesString || "38-44");
+
+      activeItems.forEach((item, idx) => {
+        data.append(`grade[${idx}][size]`, String(item.size));
+        data.append(`grade[${idx}][stock]`, String(item.stock));
+      });
+
       data.append("active", formData.active === "Ativo" ? "1" : "0");
 
       // Se for edição, envia as imagens mantidas do banco
@@ -333,6 +404,50 @@ export function useProdutosCatalogo() {
         product.productType.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
+  // Marcas mais frequentes nos produtos cadastrados (Top 8, sem duplicatas)
+  const topMarcasMap = new Map<string, { label: string; count: number }>();
+  products.forEach((p) => {
+    const rawBrand = p.brand?.trim();
+    if (rawBrand) {
+      const key = rawBrand.toLowerCase();
+      const existing = topMarcasMap.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        const formatted =
+          rawBrand.charAt(0).toUpperCase() + rawBrand.slice(1);
+        topMarcasMap.set(key, { label: formatted, count: 1 });
+      }
+    }
+  });
+
+  const topMarcasLista = Array.from(topMarcasMap.values())
+    .sort((a, b) => b.count - a.count)
+    .map((item) => item.label)
+    .slice(0, 8);
+
+  // Tipos de produto mais frequentes nos produtos cadastrados (Top 8, sem duplicatas)
+  const topTiposMap = new Map<string, { label: string; count: number }>();
+  products.forEach((p) => {
+    const rawType = p.productType?.trim();
+    if (rawType) {
+      const key = rawType.toLowerCase();
+      const existing = topTiposMap.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        const formatted =
+          rawType.charAt(0).toUpperCase() + rawType.slice(1);
+        topTiposMap.set(key, { label: formatted, count: 1 });
+      }
+    }
+  });
+
+  const topTiposLista = Array.from(topTiposMap.values())
+    .sort((a, b) => b.count - a.count)
+    .map((item) => item.label)
+    .slice(0, 8);
+
   return {
     searchTerm,
     setSearchTerm,
@@ -344,6 +459,8 @@ export function useProdutosCatalogo() {
     selectedFiles,
     existingImages,
     filteredProducts,
+    topMarcas: topMarcasLista,
+    topTipos: topTiposLista,
     toast,
     closeToast,
     deletingProduct,
