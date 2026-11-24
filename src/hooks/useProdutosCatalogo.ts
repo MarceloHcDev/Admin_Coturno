@@ -3,6 +3,16 @@ import { Product } from "../components/organisms/ProductTable";
 import { api } from "../services/api";
 import { ToastType } from "../components/molecules/Toast";
 
+export const AVAILABLE_SIZES = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46];
+
+export const createInitialGrade = (): Record<number, number> => {
+  const g: Record<number, number> = {};
+  AVAILABLE_SIZES.forEach((s) => {
+    g[s] = s >= 37 && s <= 44 ? 5 : 0;
+  });
+  return g;
+};
+
 export interface ProductFormData {
   name: string;
   productType: string;
@@ -15,6 +25,7 @@ export interface ProductFormData {
   costPrice: number | string;
   stock: number | string;
   sizes: string;
+  grade: Record<number, number>;
   color: string;
 }
 
@@ -35,8 +46,9 @@ const initialFormData: ProductFormData = {
   active: "Ativo",
   price: "",
   costPrice: "",
-  stock: "",
-  sizes: "",
+  stock: 40,
+  sizes: "37, 38, 39, 40, 41, 42, 43, 44",
+  grade: createInitialGrade(),
   color: "",
 };
 
@@ -113,6 +125,7 @@ export function useProdutosCatalogo() {
           sizes: Array.isArray(p.sizes)
             ? p.sizes.join(", ")
             : p.sizes || "38-44",
+          grade: Array.isArray(p.grade) ? p.grade : [],
           color: p.color || "",
           image: formattedImages[0] || "",
           images: formattedImages,
@@ -138,6 +151,29 @@ export function useProdutosCatalogo() {
   const handleEdit = (id: string | number): void => {
     const product = products.find((p) => String(p.id) === String(id));
     if (product) {
+      const initialG: Record<number, number> = {};
+      AVAILABLE_SIZES.forEach((s) => (initialG[s] = 0));
+
+      if (Array.isArray(product.grade) && product.grade.length > 0) {
+        product.grade.forEach((item: any) => {
+          const s = Number(item.size || item.tamanho);
+          if (AVAILABLE_SIZES.includes(s)) {
+            initialG[s] = Number(item.stock || item.quantidade || 0);
+          }
+        });
+      } else if (product.sizes) {
+        const parsedSizes = product.sizes
+          .split(",")
+          .map((s) => Number(s.trim()))
+          .filter((n) => !isNaN(n) && AVAILABLE_SIZES.includes(n));
+        const total = Number(product.stock) || 0;
+        const each =
+          parsedSizes.length > 0
+            ? Math.max(1, Math.round(total / parsedSizes.length))
+            : 0;
+        parsedSizes.forEach((s) => (initialG[s] = each));
+      }
+
       setFormData({
         name: product.name,
         productType: product.productType,
@@ -150,6 +186,7 @@ export function useProdutosCatalogo() {
         costPrice: product.costPrice !== undefined ? product.costPrice : "",
         stock: product.stock,
         sizes: product.sizes,
+        grade: initialG,
         color: product.color,
       });
       setSelectedFiles([]);
@@ -267,8 +304,23 @@ export function useProdutosCatalogo() {
       if (formData.costPrice !== "" && formData.costPrice !== undefined) {
         data.append("cost_price", String(formData.costPrice));
       }
-      data.append("stock", String(formData.stock || 0));
-      data.append("sizes", formData.sizes);
+
+      // Processa a grade de tamanhos e quantidades
+      const activeItems = Object.entries(formData.grade || {})
+        .map(([s, q]) => ({ size: Number(s), stock: Number(q) || 0 }))
+        .filter((item) => item.stock > 0);
+
+      const totalStock = activeItems.reduce((acc, item) => acc + item.stock, 0);
+      const sizesString = activeItems.map((item) => item.size).join(", ");
+
+      data.append("stock", String(totalStock));
+      data.append("sizes", sizesString || "38-44");
+
+      activeItems.forEach((item, idx) => {
+        data.append(`grade[${idx}][size]`, String(item.size));
+        data.append(`grade[${idx}][stock]`, String(item.stock));
+      });
+
       data.append("active", formData.active === "Ativo" ? "1" : "0");
 
       // Se for edição, envia as imagens mantidas do banco

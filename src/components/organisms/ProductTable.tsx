@@ -14,6 +14,7 @@ export interface Product {
   costPrice?: number | string;
   stock: number | string;
   sizes: string;
+  grade?: Array<{ size: number; stock: number }>;
   color: string;
   active: "Ativo" | "Inativo" | string;
   description?: string;
