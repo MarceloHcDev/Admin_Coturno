@@ -404,6 +404,34 @@ export function useProdutosCatalogo() {
         product.productType.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
+  // Marcas mais frequentes nos produtos cadastrados (Top 8)
+  const topMarcas = products.reduce((acc: Record<string, number>, p) => {
+    const brand = p.brand?.trim();
+    if (brand) {
+      acc[brand] = (acc[brand] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  const topMarcasLista = Object.entries(topMarcas)
+    .sort((a, b) => b[1] - a[1])
+    .map(([brand]) => brand)
+    .slice(0, 8);
+
+  // Tipos de produto mais frequentes nos produtos cadastrados (Top 8)
+  const topTipos = products.reduce((acc: Record<string, number>, p) => {
+    const type = p.productType?.trim();
+    if (type) {
+      acc[type] = (acc[type] || 0) + 1;
+    }
+    return acc;
+  }, {});
+
+  const topTiposLista = Object.entries(topTipos)
+    .sort((a, b) => b[1] - a[1])
+    .map(([type]) => type)
+    .slice(0, 8);
+
   return {
     searchTerm,
     setSearchTerm,
@@ -415,6 +443,8 @@ export function useProdutosCatalogo() {
     selectedFiles,
     existingImages,
     filteredProducts,
+    topMarcas: topMarcasLista,
+    topTipos: topTiposLista,
     toast,
     closeToast,
     deletingProduct,

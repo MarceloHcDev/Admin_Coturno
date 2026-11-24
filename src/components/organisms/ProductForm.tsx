@@ -7,6 +7,8 @@ export interface ProductFormProps {
   setFormData: React.Dispatch<React.SetStateAction<ProductFormData>>;
   selectedFiles: File[];
   existingImages?: string[];
+  topMarcas?: string[];
+  topTipos?: string[];
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (index: number) => void;
   onRemoveExistingImage?: (index: number) => void;
@@ -21,6 +23,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   setFormData,
   selectedFiles,
   existingImages = [],
+  topMarcas = [],
+  topTipos = [],
   onFileChange,
   onRemoveFile,
   onRemoveExistingImage,
@@ -138,7 +142,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <label className="text-sm font-medium text-slate-600">
               Tipo do produto
             </label>
-            <select
+            <input
+              type="text"
+              placeholder="Ex: Coturno, Borzeguim..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.productType}
               onChange={(e) =>
@@ -148,14 +154,30 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 })
               }
               required
-            >
-              <option value="">Selecione um tipo</option>
-              <option value="Coturno">Coturno</option>
-              <option value="Borzeguim">Borzeguim</option>
-              <option value="Tênis Esportivo">Tênis Esportivo</option>
-              <option value="Sapatos Sociais">Sapatos Sociais</option>
-              <option value="Sandálias">Sandálias</option>
-            </select>
+            />
+            {topTipos && topTipos.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] text-slate-400 font-medium">
+                  Frequentes:
+                </span>
+                {topTipos.map((tipo) => (
+                  <button
+                    key={tipo}
+                    type="button"
+                    onClick={() =>
+                      setFormData({ ...formData, productType: tipo })
+                    }
+                    className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer border ${
+                      formData.productType?.toLowerCase() === tipo.toLowerCase()
+                        ? "bg-blue-50 text-blue-700 border-blue-300 font-semibold"
+                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+                    }`}
+                  >
+                    {tipo}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Tipo de Terreno */}
@@ -163,7 +185,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <label className="text-sm font-medium text-slate-600">
               Tipo de Terreno
             </label>
-            <select
+            <input
+              type="text"
+              placeholder="Ex: Multiterreno, Tático/Militar..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.terrainType}
               onChange={(e) =>
@@ -172,13 +196,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   terrainType: e.target.value,
                 })
               }
-            >
-              <option value="">Selecione o terreno</option>
-              <option value="Urbano/Asfalto">Urbano/Asfalto</option>
-              <option value="Trilha/Lama">Trilha/Lama</option>
-              <option value="Tático/Militar">Tático/Militar</option>
-              <option value="Multiterreno">Multiterreno</option>
-            </select>
+            />
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {["Multiterreno", "Tático/Militar", "Urbano/Asfalto", "Trilha/Lama"].map(
+                (terreno) => (
+                  <button
+                    key={terreno}
+                    type="button"
+                    onClick={() =>
+                      setFormData({ ...formData, terrainType: terreno })
+                    }
+                    className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer border ${
+                      formData.terrainType?.toLowerCase() === terreno.toLowerCase()
+                        ? "bg-blue-50 text-blue-700 border-blue-300 font-semibold"
+                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+                    }`}
+                  >
+                    {terreno}
+                  </button>
+                )
+              )}
+            </div>
           </div>
 
           {/* Modelo */}
@@ -198,21 +236,37 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           {/* Marca */}
           <div className="flex flex-col space-y-1">
             <label className="text-sm font-medium text-slate-600">Marca</label>
-            <select
+            <input
+              type="text"
+              placeholder="Ex: Atalaia, Acero..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.brand}
               onChange={(e) =>
                 setFormData({ ...formData, brand: e.target.value })
               }
               required
-            >
-              <option value="">Selecione uma marca</option>
-              <option value="Atalaia">Atalaia</option>
-              <option value="Acero">Acero</option>
-              <option value="Bull Terrier">Bull Terrier</option>
-              <option value="Oakley">Oakley</option>
-              <option value="Macboot">Macboot</option>
-            </select>
+            />
+            {topMarcas && topMarcas.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] text-slate-400 font-medium">
+                  Frequentes:
+                </span>
+                {topMarcas.map((marca) => (
+                  <button
+                    key={marca}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, brand: marca })}
+                    className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer border ${
+                      formData.brand?.toLowerCase() === marca.toLowerCase()
+                        ? "bg-blue-50 text-blue-700 border-blue-300 font-semibold"
+                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+                    }`}
+                  >
+                    {marca}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Preço de Venda */}
