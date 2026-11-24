@@ -180,7 +180,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </label>
             <input
               type="text"
-              placeholder="Ex: Coturno, Borzeguim..."
+              placeholder="Selecione ou digite o tipo..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.productType}
               onFocus={() => setActivePopup("tipo")}
@@ -194,12 +194,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               required
             />
             {activePopup === "tipo" && topTipos && topTipos.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[220px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
                 <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
                   <span className="text-[11px] font-bold text-slate-700">
                     Mais frequentes:
                   </span>
-                  <span className="text-[10px] text-slate-400">Clique para selecionar</span>
+                  <span className="text-[10px] text-blue-600 font-medium">
+                    Clique para selecionar ou digite
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {topTipos.map((tipo) => (
@@ -220,6 +222,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     </button>
                   ))}
                 </div>
+                <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                  💡 Clique em uma opção acima ou digite livremente no campo.
+                </div>
               </div>
             )}
           </div>
@@ -231,7 +236,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </label>
             <input
               type="text"
-              placeholder="Ex: Multiterreno, Tático/Militar..."
+              placeholder="Selecione ou digite o terreno..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.terrainType}
               onFocus={() => setActivePopup("terreno")}
@@ -244,12 +249,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               }
             />
             {activePopup === "terreno" && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[220px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
                 <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
                   <span className="text-[11px] font-bold text-slate-700">
                     Opções de Terreno:
                   </span>
-                  <span className="text-[10px] text-slate-400">Clique para selecionar</span>
+                  <span className="text-[10px] text-blue-600 font-medium">
+                    Clique para selecionar ou digite
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {["Multiterreno", "Tático/Militar", "Urbano/Asfalto", "Trilha/Lama"].map(
@@ -271,6 +278,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       </button>
                     )
                   )}
+                </div>
+                <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                  💡 Clique em uma opção acima ou digite livremente no campo.
                 </div>
               </div>
             )}
@@ -295,7 +305,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <label className="text-sm font-medium text-slate-600">Marca</label>
             <input
               type="text"
-              placeholder="Ex: Atalaia, Acero..."
+              placeholder="Selecione ou digite a marca..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.brand}
               onFocus={() => setActivePopup("marca")}
@@ -306,12 +316,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               required
             />
             {activePopup === "marca" && topMarcas && topMarcas.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[220px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
                 <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
                   <span className="text-[11px] font-bold text-slate-700">
                     Mais frequentes:
                   </span>
-                  <span className="text-[10px] text-slate-400">Clique para selecionar</span>
+                  <span className="text-[10px] text-blue-600 font-medium">
+                    Clique para selecionar ou digite
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {topMarcas.map((marca) => (
@@ -331,6 +343,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       {marca}
                     </button>
                   ))}
+                </div>
+                <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                  💡 Clique em uma opção acima ou digite livremente no campo.
                 </div>
               </div>
             )}
