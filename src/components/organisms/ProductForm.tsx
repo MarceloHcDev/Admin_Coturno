@@ -113,7 +113,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               <option value="Urbano/Asfalto">Urbano/Asfalto</option>
               <option value="Trilha/Lama">Trilha/Lama</option>
               <option value="Tático/Militar">Tático/Militar</option>
-              <option value="Misto">Misto</option>
+              <option value="Multiterreno">Multiterreno</option>
             </select>
           </div>
 
