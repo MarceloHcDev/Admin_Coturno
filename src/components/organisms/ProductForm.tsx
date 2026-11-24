@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FormEvent, useMemo, useEffect, useState } from "react";
+import React, { ChangeEvent, FormEvent, useMemo, useEffect, useState, useRef } from "react";
 import { ProductFormData, AVAILABLE_SIZES } from "../../hooks/useProdutosCatalogo";
 
 export interface ProductFormProps {
@@ -50,6 +50,41 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   const [bulkQuantity, setBulkQuantity] = useState<string>("5");
   const [activePopup, setActivePopup] = useState<"tipo" | "terreno" | "marca" | null>(null);
+
+  const tipoRef = useRef<HTMLDivElement>(null);
+  const terrenoRef = useRef<HTMLDivElement>(null);
+  const marcaRef = useRef<HTMLDivElement>(null);
+
+  // Fecha o popup somente quando o usuário clica fora do campo correspondente
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        activePopup === "tipo" &&
+        tipoRef.current &&
+        !tipoRef.current.contains(target)
+      ) {
+        setActivePopup(null);
+      } else if (
+        activePopup === "terreno" &&
+        terrenoRef.current &&
+        !terrenoRef.current.contains(target)
+      ) {
+        setActivePopup(null);
+      } else if (
+        activePopup === "marca" &&
+        marcaRef.current &&
+        !marcaRef.current.contains(target)
+      ) {
+        setActivePopup(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [activePopup]);
 
   // Calcula o total de estoque a partir da grade
   const totalGradeStock = useMemo(() => {
@@ -139,7 +174,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Tipo do Produto */}
-          <div className="flex flex-col space-y-1 relative">
+          <div ref={tipoRef} className="flex flex-col space-y-1 relative">
             <label className="text-sm font-medium text-slate-600">
               Tipo do produto
             </label>
@@ -149,7 +184,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.productType}
               onFocus={() => setActivePopup("tipo")}
-              onBlur={() => setTimeout(() => setActivePopup(null), 250)}
+              onClick={() => setActivePopup("tipo")}
               onChange={(e) =>
                 setFormData({
                   ...formData,
@@ -171,8 +206,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     <button
                       key={tipo}
                       type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
+                      onClick={() => {
                         setFormData((prev) => ({ ...prev, productType: tipo }));
                         setActivePopup(null);
                       }}
@@ -191,7 +225,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Tipo de Terreno */}
-          <div className="flex flex-col space-y-1 relative">
+          <div ref={terrenoRef} className="flex flex-col space-y-1 relative">
             <label className="text-sm font-medium text-slate-600">
               Tipo de Terreno
             </label>
@@ -201,7 +235,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.terrainType}
               onFocus={() => setActivePopup("terreno")}
-              onBlur={() => setTimeout(() => setActivePopup(null), 250)}
+              onClick={() => setActivePopup("terreno")}
               onChange={(e) =>
                 setFormData({
                   ...formData,
@@ -223,8 +257,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       <button
                         key={terreno}
                         type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
+                        onClick={() => {
                           setFormData((prev) => ({ ...prev, terrainType: terreno }));
                           setActivePopup(null);
                         }}
@@ -258,7 +291,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Marca */}
-          <div className="flex flex-col space-y-1 relative">
+          <div ref={marcaRef} className="flex flex-col space-y-1 relative">
             <label className="text-sm font-medium text-slate-600">Marca</label>
             <input
               type="text"
@@ -266,7 +299,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.brand}
               onFocus={() => setActivePopup("marca")}
-              onBlur={() => setTimeout(() => setActivePopup(null), 250)}
+              onClick={() => setActivePopup("marca")}
               onChange={(e) =>
                 setFormData({ ...formData, brand: e.target.value })
               }
@@ -285,8 +318,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     <button
                       key={marca}
                       type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
+                      onClick={() => {
                         setFormData((prev) => ({ ...prev, brand: marca }));
                         setActivePopup(null);
                       }}
