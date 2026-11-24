@@ -49,6 +49,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const slotsRestantes = Math.max(0, 6 - totalFotosAtivas);
 
   const [bulkQuantity, setBulkQuantity] = useState<string>("5");
+  const [activePopup, setActivePopup] = useState<"tipo" | "terreno" | "marca" | null>(null);
 
   // Calcula o total de estoque a partir da grade
   const totalGradeStock = useMemo(() => {
@@ -138,7 +139,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Tipo do Produto */}
-          <div className="flex flex-col space-y-1">
+          <div className="flex flex-col space-y-1 relative">
             <label className="text-sm font-medium text-slate-600">
               Tipo do produto
             </label>
@@ -147,6 +148,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               placeholder="Ex: Coturno, Borzeguim..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.productType}
+              onFocus={() => setActivePopup("tipo")}
+              onBlur={() => setTimeout(() => setActivePopup(null), 250)}
               onChange={(e) =>
                 setFormData({
                   ...formData,
@@ -155,33 +158,40 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               }
               required
             />
-            {topTipos && topTipos.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[11px] text-slate-400 font-medium">
-                  Frequentes:
-                </span>
-                {topTipos.map((tipo) => (
-                  <button
-                    key={tipo}
-                    type="button"
-                    onClick={() =>
-                      setFormData({ ...formData, productType: tipo })
-                    }
-                    className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer border ${
-                      formData.productType?.toLowerCase() === tipo.toLowerCase()
-                        ? "bg-blue-50 text-blue-700 border-blue-300 font-semibold"
-                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
-                    }`}
-                  >
-                    {tipo}
-                  </button>
-                ))}
+            {activePopup === "tipo" && topTipos && topTipos.length > 0 && (
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[220px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
+                  <span className="text-[11px] font-bold text-slate-700">
+                    Mais frequentes:
+                  </span>
+                  <span className="text-[10px] text-slate-400">Clique para selecionar</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {topTipos.map((tipo) => (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setFormData((prev) => ({ ...prev, productType: tipo }));
+                        setActivePopup(null);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                        formData.productType?.toLowerCase() === tipo.toLowerCase()
+                          ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                          : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      {tipo}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
           {/* Tipo de Terreno */}
-          <div className="flex flex-col space-y-1">
+          <div className="flex flex-col space-y-1 relative">
             <label className="text-sm font-medium text-slate-600">
               Tipo de Terreno
             </label>
@@ -190,6 +200,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               placeholder="Ex: Multiterreno, Tático/Militar..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.terrainType}
+              onFocus={() => setActivePopup("terreno")}
+              onBlur={() => setTimeout(() => setActivePopup(null), 250)}
               onChange={(e) =>
                 setFormData({
                   ...formData,
@@ -197,26 +209,38 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 })
               }
             />
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              {["Multiterreno", "Tático/Militar", "Urbano/Asfalto", "Trilha/Lama"].map(
-                (terreno) => (
-                  <button
-                    key={terreno}
-                    type="button"
-                    onClick={() =>
-                      setFormData({ ...formData, terrainType: terreno })
-                    }
-                    className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer border ${
-                      formData.terrainType?.toLowerCase() === terreno.toLowerCase()
-                        ? "bg-blue-50 text-blue-700 border-blue-300 font-semibold"
-                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
-                    }`}
-                  >
-                    {terreno}
-                  </button>
-                )
-              )}
-            </div>
+            {activePopup === "terreno" && (
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[220px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
+                  <span className="text-[11px] font-bold text-slate-700">
+                    Opções de Terreno:
+                  </span>
+                  <span className="text-[10px] text-slate-400">Clique para selecionar</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {["Multiterreno", "Tático/Militar", "Urbano/Asfalto", "Trilha/Lama"].map(
+                    (terreno) => (
+                      <button
+                        key={terreno}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setFormData((prev) => ({ ...prev, terrainType: terreno }));
+                          setActivePopup(null);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                          formData.terrainType?.toLowerCase() === terreno.toLowerCase()
+                            ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                            : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                        }`}
+                      >
+                        {terreno}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Modelo */}
@@ -234,37 +258,48 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Marca */}
-          <div className="flex flex-col space-y-1">
+          <div className="flex flex-col space-y-1 relative">
             <label className="text-sm font-medium text-slate-600">Marca</label>
             <input
               type="text"
               placeholder="Ex: Atalaia, Acero..."
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.brand}
+              onFocus={() => setActivePopup("marca")}
+              onBlur={() => setTimeout(() => setActivePopup(null), 250)}
               onChange={(e) =>
                 setFormData({ ...formData, brand: e.target.value })
               }
               required
             />
-            {topMarcas && topMarcas.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[11px] text-slate-400 font-medium">
-                  Frequentes:
-                </span>
-                {topMarcas.map((marca) => (
-                  <button
-                    key={marca}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, brand: marca })}
-                    className={`px-2 py-0.5 rounded-md text-xs font-medium transition-colors cursor-pointer border ${
-                      formData.brand?.toLowerCase() === marca.toLowerCase()
-                        ? "bg-blue-50 text-blue-700 border-blue-300 font-semibold"
-                        : "bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
-                    }`}
-                  >
-                    {marca}
-                  </button>
-                ))}
+            {activePopup === "marca" && topMarcas && topMarcas.length > 0 && (
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[220px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
+                  <span className="text-[11px] font-bold text-slate-700">
+                    Mais frequentes:
+                  </span>
+                  <span className="text-[10px] text-slate-400">Clique para selecionar</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {topMarcas.map((marca) => (
+                    <button
+                      key={marca}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setFormData((prev) => ({ ...prev, brand: marca }));
+                        setActivePopup(null);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                        formData.brand?.toLowerCase() === marca.toLowerCase()
+                          ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                          : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      {marca}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

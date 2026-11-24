@@ -404,32 +404,48 @@ export function useProdutosCatalogo() {
         product.productType.toLowerCase().includes(searchTerm.toLowerCase())),
   );
 
-  // Marcas mais frequentes nos produtos cadastrados (Top 8)
-  const topMarcas = products.reduce((acc: Record<string, number>, p) => {
-    const brand = p.brand?.trim();
-    if (brand) {
-      acc[brand] = (acc[brand] || 0) + 1;
+  // Marcas mais frequentes nos produtos cadastrados (Top 8, sem duplicatas)
+  const topMarcasMap = new Map<string, { label: string; count: number }>();
+  products.forEach((p) => {
+    const rawBrand = p.brand?.trim();
+    if (rawBrand) {
+      const key = rawBrand.toLowerCase();
+      const existing = topMarcasMap.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        const formatted =
+          rawBrand.charAt(0).toUpperCase() + rawBrand.slice(1);
+        topMarcasMap.set(key, { label: formatted, count: 1 });
+      }
     }
-    return acc;
-  }, {});
+  });
 
-  const topMarcasLista = Object.entries(topMarcas)
-    .sort((a, b) => b[1] - a[1])
-    .map(([brand]) => brand)
+  const topMarcasLista = Array.from(topMarcasMap.values())
+    .sort((a, b) => b.count - a.count)
+    .map((item) => item.label)
     .slice(0, 8);
 
-  // Tipos de produto mais frequentes nos produtos cadastrados (Top 8)
-  const topTipos = products.reduce((acc: Record<string, number>, p) => {
-    const type = p.productType?.trim();
-    if (type) {
-      acc[type] = (acc[type] || 0) + 1;
+  // Tipos de produto mais frequentes nos produtos cadastrados (Top 8, sem duplicatas)
+  const topTiposMap = new Map<string, { label: string; count: number }>();
+  products.forEach((p) => {
+    const rawType = p.productType?.trim();
+    if (rawType) {
+      const key = rawType.toLowerCase();
+      const existing = topTiposMap.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        const formatted =
+          rawType.charAt(0).toUpperCase() + rawType.slice(1);
+        topTiposMap.set(key, { label: formatted, count: 1 });
+      }
     }
-    return acc;
-  }, {});
+  });
 
-  const topTiposLista = Object.entries(topTipos)
-    .sort((a, b) => b[1] - a[1])
-    .map(([type]) => type)
+  const topTiposLista = Array.from(topTiposMap.values())
+    .sort((a, b) => b.count - a.count)
+    .map((item) => item.label)
     .slice(0, 8);
 
   return {
