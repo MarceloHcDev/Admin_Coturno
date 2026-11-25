@@ -224,7 +224,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                               }
                               className={`inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
                                 isAtivo
-                                  ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                                  ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 shadow-2xs"
                                   : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
                               }`}
                               title={
