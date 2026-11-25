@@ -1,9 +1,9 @@
 // src/components/atoms/ImageUploadInput.tsx
-import React, { useState, useEffect, useRef, ChangeEvent } from 'react';
-import { Monitor, Smartphone, X } from 'lucide-react';
-import { UploadIcon } from './Icons';
+import React, { useState, useEffect, useRef, ChangeEvent } from "react";
+import { Monitor, Smartphone, X } from "lucide-react";
+import { UploadIcon } from "./Icons";
 
-export type ImageVariant = 'desktop' | 'mobile' | 'single';
+export type ImageVariant = "desktop" | "mobile" | "single";
 
 interface ImageUploadInputProps {
   id: string;
@@ -24,8 +24,10 @@ export const ImageUploadInput: React.FC<ImageUploadInputProps> = ({
   cloudinaryPublicId,
   onImageChange,
 }) => {
-  const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
-  const [fileName, setFileName] = useState<string>('');
+  const [preview, setPreview] = useState<string | null>(
+    currentImageUrl || null,
+  );
+  const [fileName, setFileName] = useState<string>("");
   const inputRef = useRef<HTMLInputElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
@@ -62,10 +64,10 @@ export const ImageUploadInput: React.FC<ImageUploadInputProps> = ({
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
-    setFileName('');
+    setFileName("");
     setPreview(currentImageUrl || null);
     if (inputRef.current) {
-      inputRef.current.value = '';
+      inputRef.current.value = "";
     }
     onImageChange(null);
   };
@@ -73,19 +75,26 @@ export const ImageUploadInput: React.FC<ImageUploadInputProps> = ({
   return (
     <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/60 p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <label htmlFor={id} className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-800">
-          {variant === 'desktop' && <Monitor className="w-4 h-4 text-blue-700" />}
-          {variant === 'mobile' && <Smartphone className="w-4 h-4 text-purple-700" />}
+        <label
+          htmlFor={id}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-800"
+        >
+          {variant === "desktop" && (
+            <Monitor className="w-4 h-4 text-blue-700" />
+          )}
+          {variant === "mobile" && (
+            <Smartphone className="w-4 h-4 text-purple-700" />
+          )}
           <span>{label}</span>
         </label>
 
         <div className="flex items-center gap-2">
-          {variant === 'desktop' && (
+          {variant === "desktop" && (
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
               Desktop
             </span>
           )}
-          {variant === 'mobile' && (
+          {variant === "mobile" && (
             <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
               Mobile
             </span>
@@ -110,7 +119,8 @@ export const ImageUploadInput: React.FC<ImageUploadInputProps> = ({
           <div className="flex flex-col items-center justify-center py-4 px-3 text-center">
             <UploadIcon className="w-7 h-7 mb-1.5 text-gray-400" />
             <p className="mb-1 text-xs sm:text-sm text-gray-600 font-medium">
-              Clique para selecionar <span className="font-normal">ou arraste a imagem</span>
+              Clique para selecionar{" "}
+              <span className="font-normal">ou arraste a imagem</span>
             </p>
             {recommendedSize && (
               <p className="text-[11px] text-gray-500">
@@ -118,7 +128,7 @@ export const ImageUploadInput: React.FC<ImageUploadInputProps> = ({
               </p>
             )}
             {fileName && (
-              <p className="mt-1.5 text-xs font-semibold text-emerald-600 truncate max-w-[220px]">
+              <p className="mt-1.5 text-xs font-semibold text-emerald-600 truncate max-w-55">
                 Selecionado: {fileName}
               </p>
             )}
@@ -155,7 +165,9 @@ export const ImageUploadInput: React.FC<ImageUploadInputProps> = ({
             </>
           ) : (
             <div className="text-center p-3">
-              <span className="text-xs text-gray-400 block">Sem imagem definida</span>
+              <span className="text-xs text-gray-400 block">
+                Sem imagem definida
+              </span>
             </div>
           )}
         </div>
