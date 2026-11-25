@@ -17,6 +17,8 @@ export default function UsuariosGestao(): React.JSX.Element {
   const [savingAdmin, setSavingAdmin] = useState<boolean>(false);
   const [deletingUser, setDeletingUser] = useState<UserItem | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [statusTargetUser, setStatusTargetUser] = useState<UserItem | null>(null);
+  const [isTogglingStatus, setIsTogglingStatus] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
   // Informações do administrador logado
@@ -64,32 +66,44 @@ export default function UsuariosGestao(): React.JSX.Element {
     carregarUsuarios();
   }, []);
 
-  // Alterna status (Ativo/Inativo)
-  const handleToggleStatus = async (id: string | number, currentStatus?: string) => {
-    const isAtivo = currentStatus?.toLowerCase() === 'ativo';
-    const acao = isAtivo ? 'inativar' : 'reativar';
-
-    if (!window.confirm(`Tem certeza que deseja ${acao} este usuário?`)) {
-      return;
+  // Abre modal de confirmação para alternar status (Ativo/Inativo)
+  const handleToggleStatusRequest = (id: string | number) => {
+    const target = users.find((u) => String(u.id) === String(id));
+    if (target) {
+      setStatusTargetUser(target);
     }
+  };
+
+  // Confirma alteração de status (Ativo/Inativo)
+  const handleConfirmToggleStatus = async () => {
+    if (!statusTargetUser) return;
+
+    const isAtivo = statusTargetUser.status?.toLowerCase() === 'ativo';
 
     try {
-      await api.patch(`/admin/usuarios/${id}/toggle-status`);
-      showToast(`Status do usuário atualizado com sucesso!`, 'success');
+      setIsTogglingStatus(true);
+      await api.patch(`/admin/usuarios/${statusTargetUser.id}/toggle-status`);
+      showToast(
+        isAtivo ? 'Usuário inativado com sucesso!' : 'Usuário reativado com sucesso!',
+        'success'
+      );
       // Atualiza estado local imediatamente
       setUsers((prev) =>
         prev.map((u) => {
-          if (String(u.id) === String(id)) {
+          if (String(u.id) === String(statusTargetUser.id)) {
             const nextStatus = isAtivo ? 'inativo' : 'ativo';
             return { ...u, status: nextStatus };
           }
           return u;
         })
       );
+      setStatusTargetUser(null);
     } catch (err: any) {
       console.error('Erro ao alterar status:', err);
       const msg = err.response?.data?.message || 'Falha ao alterar status do usuário.';
       showToast(msg, 'error');
+    } finally {
+      setIsTogglingStatus(false);
     }
   };
 
@@ -314,7 +328,7 @@ export default function UsuariosGestao(): React.JSX.Element {
               activeTab={activeTab}
               onToggleStatus={
                 // Se for aba administradores e não for super admin, não passa ação de toggle
-                activeTab === 'administradores' && !isSuperAdmin ? undefined : handleToggleStatus
+                activeTab === 'administradores' && !isSuperAdmin ? undefined : handleToggleStatusRequest
               }
               onDelete={
                 activeTab === 'administradores' && isSuperAdmin
@@ -333,6 +347,34 @@ export default function UsuariosGestao(): React.JSX.Element {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateAdmin}
         loading={savingAdmin}
+      />
+
+      {/* Modal de Confirmação de Inativação / Reativação */}
+      <ConfirmModal
+        isOpen={Boolean(statusTargetUser)}
+        variant={statusTargetUser?.status?.toLowerCase() === 'ativo' ? 'warning' : 'success'}
+        title={
+          statusTargetUser?.status?.toLowerCase() === 'ativo'
+            ? 'Inativar Usuário'
+            : 'Reativar Usuário'
+        }
+        message={
+          statusTargetUser
+            ? statusTargetUser.status?.toLowerCase() === 'ativo'
+              ? `Tem certeza que deseja inativar "${statusTargetUser.firstName} ${statusTargetUser.lastName}" (${statusTargetUser.email})? O acesso será bloqueado imediatamente.`
+              : `Tem certeza que deseja reativar "${statusTargetUser.firstName} ${statusTargetUser.lastName}" (${statusTargetUser.email})?`
+            : ''
+        }
+        confirmText={
+          statusTargetUser?.status?.toLowerCase() === 'ativo' ? 'Sim, Inativar' : 'Sim, Reativar'
+        }
+        loadingText={
+          statusTargetUser?.status?.toLowerCase() === 'ativo' ? 'Inativando...' : 'Reativando...'
+        }
+        cancelText="Cancelar"
+        loading={isTogglingStatus}
+        onConfirm={handleConfirmToggleStatus}
+        onCancel={() => setStatusTargetUser(null)}
       />
 
       {/* Modal de Confirmação de Exclusão (Soft Delete) */}
