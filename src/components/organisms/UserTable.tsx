@@ -209,7 +209,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                     <div className="flex items-center justify-center gap-2">
                       {isItemSuperAdmin ? (
                         <span
-                          className="inline-flex items-center h-8 text-xs font-medium text-amber-700 bg-amber-50 px-3 rounded-lg border border-amber-200"
+                          className="inline-flex items-center h-8 text-[13px] font-medium text-amber-700 bg-amber-50 px-3 rounded-lg border border-amber-200"
                           title="O Administrador Principal não pode ser inativado"
                         >
                           Imune
@@ -222,7 +222,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                               onClick={() =>
                                 onToggleStatus(user.id, user.status)
                               }
-                              className={`inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                              className={`inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-medium transition-colors cursor-pointer border ${
                                 isAtivo
                                   ? "bg-amber-600 text-white border-amber-600 hover:bg-amber-700 shadow-2xs"
                                   : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
