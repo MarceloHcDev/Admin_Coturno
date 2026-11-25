@@ -1,7 +1,7 @@
 // src/pages/Edicao_Imagens.tsx
-import React from 'react';
-import { PageHeader } from '../components/molecules/PageHeader';
-import { StoreImagesForm } from '../components/organisms/StoreImagesForm';
+import React from "react";
+import { PageHeader } from "../components/molecules/PageHeader";
+import { StoreImagesForm } from "../components/organisms/StoreImagesForm";
 import Sidebar from "../components/organisms/Sidebar";
 
 export const EdicaoImagens: React.FC = () => {
@@ -10,9 +10,9 @@ export const EdicaoImagens: React.FC = () => {
       <Sidebar />
       <main className="pl-72 flex-1 overflow-y-auto">
         <PageHeader
-        title="Edição de Imagens da Loja"
-        subtitle="Gerencie os banners, imagens promocionais e destaques visuais da sua loja virtual."
-        hideButton={true}
+          title="Edição de Imagens da Loja"
+          subtitle="Gerencie os banners, imagens promocionais e destaques visuais da sua loja virtual."
+          hideButton={true}
         />
         <StoreImagesForm />
       </main>

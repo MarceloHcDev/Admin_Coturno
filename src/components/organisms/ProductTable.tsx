@@ -208,9 +208,19 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               {/* Ações */}
               <td className="py-3 px-4 text-center whitespace-nowrap">
                 <div className="flex items-center justify-center gap-2">
-                  <EditButton onClick={() => onEdit(product.id)} />
+                  <div
+                    className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                    title="Editar produto"
+                  >
+                    <EditButton onClick={() => onEdit(product.id)} />
+                  </div>
                   {onDelete && (
-                    <DeleteButton onClick={() => onDelete(product.id)} />
+                    <div
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 transition-colors"
+                      title="Excluir produto"
+                    >
+                      <DeleteButton onClick={() => onDelete(product.id)} />
+                    </div>
                   )}
                 </div>
               </td>
