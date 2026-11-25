@@ -19,8 +19,8 @@ export const ProductTableHeader: React.FC = () => {
         {headers.map((header, index) => (
           <th 
             key={header} 
-            className={`py-3 px-4 text-xs font-semibold text-gray-400 tracking-wider text-left whitespace-nowrap ${
-              index === headers.length - 1 ? 'text-center' : ''
+            className={`py-3 px-4 text-xs font-semibold text-gray-400 tracking-wider whitespace-nowrap ${
+              index === headers.length - 1 ? 'text-center' : 'text-left'
             }`}
           >
             {header}
