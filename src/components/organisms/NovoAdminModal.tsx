@@ -17,6 +17,33 @@ export interface NovoAdminModalProps {
   loading?: boolean;
 }
 
+function isValidCpf(value: string): boolean {
+  const cpf = value.replace(/\D/g, "");
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+
+  for (let t = 9; t < 11; t++) {
+    let sum = 0;
+    for (let c = 0; c < t; c++) {
+      sum += Number(cpf[c]) * (t + 1 - c);
+    }
+    const digit = ((10 * sum) % 11) % 10;
+    if (Number(cpf[t]) !== digit) return false;
+  }
+  return true;
+}
+
+function isValidStrongPassword(password: string): string | null {
+  if (password.length < 8) return "A senha deve ter no mínimo 8 caracteres.";
+  if (password.length > 128) return "A senha não pode ter mais de 128 caracteres.";
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password)) {
+    return "A senha deve conter letras maiúsculas e minúsculas.";
+  }
+  if (!/[^a-zA-Z0-9\s]/.test(password)) {
+    return "A senha deve conter pelo menos um símbolo (ex: !@#$%&*).";
+  }
+  return null;
+}
+
 export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
   isOpen,
   onClose,
@@ -49,17 +76,38 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
   const formatPhone = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 11);
     if (digits.length <= 2) return digits;
-    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10)
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   };
 
   const gerarSenhaAutomatica = () => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*";
-    let generated = "";
-    for (let i = 0; i < 12; i++) {
-      generated += chars.charAt(Math.floor(Math.random() * chars.length));
+    const lower = "abcdefghijkmnopqrstuvwxyz";
+    const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const nums = "23456789";
+    const symbols = "!@#$%&*";
+    const all = lower + upper + nums + symbols;
+
+    // Garante pelo menos 1 de cada categoria exigida pela regra forte
+    const chars = [
+      lower[Math.floor(Math.random() * lower.length)],
+      upper[Math.floor(Math.random() * upper.length)],
+      nums[Math.floor(Math.random() * nums.length)],
+      symbols[Math.floor(Math.random() * symbols.length)],
+    ];
+
+    for (let i = chars.length; i < 12; i++) {
+      chars.push(all[Math.floor(Math.random() * all.length)]);
     }
-    setFormData((prev) => ({ ...prev, password: generated }));
+
+    // Embaralha os caracteres
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+
+    setFormData((prev) => ({ ...prev, password: chars.join("") }));
     setShowPassword(true);
   };
 
@@ -72,17 +120,38 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
       return;
     }
 
-    if (!formData.email.trim() || !formData.email.includes("@")) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
       setErrorMsg("Informe um e-mail válido.");
       return;
     }
 
-    if (!formData.password || formData.password.length < 6) {
-      setErrorMsg("A senha deve ter no mínimo 6 caracteres.");
+    if (!formData.cpf.trim()) {
+      setErrorMsg("O CPF é obrigatório.");
       return;
     }
 
-    onSubmit(formData);
+    if (!isValidCpf(formData.cpf)) {
+      setErrorMsg("Informe um CPF válido (11 dígitos e dígitos verificadores válidos).");
+      return;
+    }
+
+    const phoneDigits = formData.phone.replace(/\D/g, "");
+    if (!phoneDigits || (phoneDigits.length !== 10 && phoneDigits.length !== 11)) {
+      setErrorMsg("Informe um telefone válido com DDD (ex: (11) 98765-4321).");
+      return;
+    }
+
+    const passwordError = isValidStrongPassword(formData.password);
+    if (passwordError) {
+      setErrorMsg(passwordError);
+      return;
+    }
+
+    onSubmit({
+      ...formData,
+      email: formData.email.trim().toLowerCase(),
+    });
   };
 
   return (
@@ -101,7 +170,7 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -120,6 +189,7 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
               <input
                 type="text"
                 required
+                maxLength={60}
                 placeholder="Ex: Carlos"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
@@ -131,6 +201,7 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
               <input
                 type="text"
                 required
+                maxLength={60}
                 placeholder="Ex: Souza"
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
@@ -144,7 +215,8 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
             <input
               type="email"
               required
-              placeholder="exemplo@coturnos.com.br"
+              maxLength={191}
+              placeholder="exemplo@coturnosecia.com.br"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-purple-500 focus:bg-white"
@@ -153,9 +225,10 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">CPF</label>
+              <label className="text-xs font-semibold text-slate-700">CPF *</label>
               <input
                 type="text"
+                required
                 placeholder="000.000.000-00"
                 value={formData.cpf}
                 onChange={(e) => setFormData({ ...formData, cpf: formatCpf(e.target.value) })}
@@ -163,9 +236,10 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">Telefone</label>
+              <label className="text-xs font-semibold text-slate-700">Telefone *</label>
               <input
                 type="text"
+                required
                 placeholder="(11) 90000-0000"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
@@ -176,7 +250,7 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
 
           <div className="space-y-1 pt-1">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-700">Senha Provisória *</label>
+              <label className="text-xs font-semibold text-slate-700">Senha de Acesso *</label>
               <button
                 type="button"
                 onClick={gerarSenhaAutomatica}
@@ -189,7 +263,7 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
               <input
                 type={showPassword ? "text" : "password"}
                 required
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mín. 8 caracteres (Aa + símbolo)"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="w-full p-2.5 pr-10 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:outline-none focus:border-purple-500 focus:bg-white"
@@ -197,11 +271,14 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            <p className="text-[11px] text-slate-400">
+              Mínimo 8 caracteres, com letra maiúscula, minúscula e símbolo.
+            </p>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
@@ -209,14 +286,14 @@ export const NovoAdminModal: React.FC<NovoAdminModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+              className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 rounded-lg text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-50"
+              className="px-5 py-2 rounded-lg text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {loading ? "Cadastrando..." : "Cadastrar Administrador"}
             </button>
