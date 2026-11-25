@@ -201,8 +201,8 @@ export default function UsuariosGestao(): React.JSX.Element {
         />
       )}
 
-      <main className="flex-1 ml-64 p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <main className="flex-1 ml-64 p-6 lg:p-8 min-w-0">
+        <div className="w-full max-w-[1600px] mx-auto space-y-6">
           {/* Header da Página */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
             <div>

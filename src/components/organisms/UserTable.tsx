@@ -68,35 +68,30 @@ export const UserTable: React.FC<UserTableProps> = ({
       <table className="w-full border-collapse align-middle">
         <thead>
           <tr className="border-b border-slate-100 bg-slate-50/75 text-left">
-            <th className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
+            <th className="py-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
               {activeTab === 'administradores' ? 'Administrador' : 'Cliente'}
             </th>
-            <th className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
+            <th className="py-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
               Contato
             </th>
-            <th className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
+            <th className="py-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
               CPF
             </th>
             {activeTab === 'clientes' && (
-              <>
-                <th className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
-                  Cidade / UF
-                </th>
-                <th className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
-                  Endereço
-                </th>
-              </>
+              <th className="py-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
+                Endereço
+              </th>
             )}
-            <th className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
+            <th className="py-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
               Provedor
             </th>
-            <th className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
+            <th className="py-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
               Status
             </th>
-            <th className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
+            <th className="py-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans whitespace-nowrap">
               Cadastrado Em
             </th>
-            <th className="py-3 px-4 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans text-center whitespace-nowrap">
+            <th className="py-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500 font-sans text-center whitespace-nowrap">
               Ações
             </th>
           </tr>
@@ -110,7 +105,7 @@ export const UserTable: React.FC<UserTableProps> = ({
               return (
                 <tr key={user.id} className="hover:bg-slate-50/60 transition-colors">
                   {/* Nome + Avatar */}
-                  <td className="py-3.5 px-4 flex items-center gap-3 whitespace-nowrap">
+                  <td className="py-3.5 px-3 flex items-center gap-3 whitespace-nowrap">
                     <div
                       className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                         isItemSuperAdmin
@@ -139,7 +134,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                   </td>
 
                   {/* Contato (Email / Telefone) */}
-                  <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap">
+                  <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap">
                     <div className="flex flex-col">
                       <span className="text-slate-800 font-medium text-xs sm:text-sm">
                         {user.email}
@@ -151,45 +146,49 @@ export const UserTable: React.FC<UserTableProps> = ({
                   </td>
 
                   {/* CPF */}
-                  <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap text-xs">
+                  <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap text-xs">
                     {user.cpf || '—'}
                   </td>
 
-                  {/* Campos específicos de Cliente: Endereço */}
+                  {/* Campo específico de Cliente: Endereço completo em 2 linhas */}
                   {activeTab === 'clientes' && (
-                    <>
-                      <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap text-xs">
-                        {user.city && user.state ? `${user.city} / ${user.state}` : user.city || user.state || '—'}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600 whitespace-nowrap text-xs">
-                        {user.sreet ? `${user.sreet}${user.sreet_number ? `, nº ${user.sreet_number}` : ''}` : '—'}
-                      </td>
-                    </>
+                    <td className="py-3.5 px-3 text-slate-600 text-xs max-w-[240px]">
+                      <div className="flex flex-col">
+                        <span className="text-slate-700 truncate" title={user.sreet ? `${user.sreet}${user.sreet_number ? `, nº ${user.sreet_number}` : ''}` : ''}>
+                          {user.sreet ? `${user.sreet}${user.sreet_number ? `, nº ${user.sreet_number}` : ''}` : '—'}
+                        </span>
+                        {(user.city || user.state) && (
+                          <span className="text-[11px] text-slate-400">
+                            {user.city && user.state ? `${user.city} / ${user.state}` : user.city || user.state}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                   )}
 
                   {/* Provedor */}
-                  <td className="py-3.5 px-4 text-slate-600 font-medium text-xs whitespace-nowrap">
+                  <td className="py-3.5 px-3 text-slate-600 font-medium text-xs whitespace-nowrap">
                     <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                       {user.provider || 'Local'}
                     </span>
                   </td>
 
                   {/* Status */}
-                  <td className="py-3.5 px-4 whitespace-nowrap">
+                  <td className="py-3.5 px-3 whitespace-nowrap">
                     <StatusBadge status={user.status} />
                   </td>
 
                   {/* Data de Cadastro */}
-                  <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap text-xs">
+                  <td className="py-3.5 px-3 text-slate-500 whitespace-nowrap text-xs">
                     {user.createdAt || '—'}
                   </td>
 
                   {/* Ações */}
-                  <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
                     <div className="flex items-center justify-center gap-2">
                       {isItemSuperAdmin ? (
                         <span
-                          className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200"
+                          className="inline-flex items-center h-8 text-[11px] font-medium text-amber-700 bg-amber-50 px-3 rounded-lg border border-amber-200"
                           title="O Administrador Principal não pode ser inativado"
                         >
                           Imune
@@ -200,7 +199,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                             <button
                               type="button"
                               onClick={() => onToggleStatus(user.id, user.status)}
-                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                              className={`inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
                                 isAtivo
                                   ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                                   : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
@@ -212,7 +211,12 @@ export const UserTable: React.FC<UserTableProps> = ({
                             </button>
                           )}
                           {activeTab === 'administradores' && onDelete && (
-                            <DeleteButton onClick={() => onDelete(user)} />
+                            <div
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 transition-colors"
+                              title="Excluir administrador"
+                            >
+                              <DeleteButton onClick={() => onDelete(user)} />
+                            </div>
                           )}
                         </>
                       )}
@@ -224,7 +228,7 @@ export const UserTable: React.FC<UserTableProps> = ({
           ) : (
             <tr>
               <td
-                colSpan={activeTab === 'clientes' ? 9 : 7}
+                colSpan={activeTab === 'clientes' ? 8 : 7}
                 className="py-12 px-6 text-center text-sm text-slate-400"
               >
                 Nenhum {activeTab === 'administradores' ? 'administrador' : 'cliente'} encontrado.
