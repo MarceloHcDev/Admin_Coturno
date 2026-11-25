@@ -179,7 +179,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                   </td>
 
                   {/* Data de Cadastro */}
-                  <td className="py-3.5 px-3 text-slate-500 whitespace-nowrap text-xs">
+                  <td className="py-3.5 px-3 text-slate-600 whitespace-nowrap text-sm">
                     {user.createdAt || '—'}
                   </td>
 
