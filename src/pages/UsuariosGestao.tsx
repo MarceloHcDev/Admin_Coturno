@@ -1,368 +1,312 @@
-// src/pages/Usuarios_Gestao.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/organisms/Sidebar';
-import PageHeader_usuario from '../components/molecules/PageHeader_usuario';
 import SearchInput from '../components/atoms/SearchInput';
-import UserTable from '../components/organisms/UserTable';
-
-export interface UserItem {
-  id?: number | string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  cpf?: string;
-  cep?: string;
-  sreet?: string; // rua
-  sreet_number?: string; //número da rua
-  block?: string; //bairro
-  city?: string; //cidade
-  state?: string; //estado
-  type?: string;
-  role?: string;
-  provider?: string;
-  status?: string;
-  createdAt?: string;
-}
-
-type FormMode = 'create' | 'edit' | null;
-
-const BRAZILIAN_STATES = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
-  'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
-  'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-];
-
-const initialUsers: UserItem[] = [
-  { id: 1, firstName: 'João', lastName: 'Silva', email: 'joao.silva@email.com', phone: '(11) 98765-4321', cpf: '123.456.789-00', cep: '12335-544', sreet: 'Rua Joaquim Barbosa', sreet_number: '23', block: 'Olaria', city: 'Rio de Janeiro', state: 'RJ', type: 'Cliente', provider: 'Google', status: 'Ativo', createdAt: '15/03/2026' },
-  { id: 2, firstName: 'Maria', lastName: 'Santos', email: 'maria.santos@email.com', phone: '(21) 91234-5678', cpf: '987.654.321-00', cep: '78989-999', sreet: 'Rua São Francisco', sreet_number: '7', block: 'Catete', city: 'Rio de Janeiro', state: 'RJ', type: 'Cliente', provider: 'Email/Senha', status: 'Ativo', createdAt: '10/02/2026' },
-  { id: 3, firstName: 'Pedro', lastName: 'Oliveira', email: 'pedro.oliveira@email.com', phone: '(31) 99999-8888', cpf: '456.789.123-00', cep: '32323-223', sreet: 'Rua Reginaldo Rossi', sreet_number: '78', block: 'Flamengo', city: 'Rio de Janeiro', state: 'RJ', type: 'Administrador', provider: 'Google', status: 'Ativo', createdAt: '05/01/2026' },
-  { id: 4, firstName: 'Ana', lastName: 'Costa', email: 'ana.costa@email.com', phone: '(41) 97777-6666', cpf: '789.123.456-00', cep: '32326-855', sreet: 'Rua São Benedito', sreet_number: '36', block: 'Copacabana', city: 'Rio de Janeiro', state: 'RJ', type: 'Cliente', provider: 'Email/Senha', status: 'Inativo', createdAt: '28/04/2026' },
-  
-  
-];
+import UserTable, { UserItem } from '../components/organisms/UserTable';
+import NovoAdminModal, { CreateAdminData } from '../components/organisms/NovoAdminModal';
+import { api } from '../services/api';
+import { Toast, ToastType } from '../components/molecules/Toast';
+import { Users, Shield, UserPlus, RefreshCw, Lock } from 'lucide-react';
 
 export default function UsuariosGestao(): React.JSX.Element {
+  const [activeTab, setActiveTab] = useState<'clientes' | 'administradores'>('clientes');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [formMode, setFormMode] = useState<FormMode>(null); 
-  const [editingId, setEditingId] = useState<number | string | null>(null);
-  const [users, setUsers] = useState<UserItem[]>(initialUsers);
+  const [users, setUsers] = useState<UserItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [savingAdmin, setSavingAdmin] = useState<boolean>(false);
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
-  const [formData, setFormData] = useState<UserItem>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    cpf: '',
-    cep: '',
-    sreet: '', // rua
-    sreet_number: '', //número da rua
-    block: '', //bairro
-    city: '', //cidade
-    state: '', //estado
-    type: 'Cliente',
-    provider: 'Email/Senha',
-    status: 'Ativo',
-    createdAt: ''
+  // Informações do administrador logado
+  const [currentUser, setCurrentUser] = useState<{
+    email: string;
+    isSuperAdmin: boolean;
+  } | null>(null);
+
+  const showToast = (message: string, type: ToastType = 'info') => {
+    setToast({ message, type });
+  };
+
+  // Carrega informações do usuário logado via /auth/me
+  const carregarSessao = async () => {
+    try {
+      const res = await api.get('/auth/me');
+      const u = res.data?.data?.usuario || res.data?.data || res.data;
+      const isSuper = Boolean(u?.is_super_admin || u?.isSuperAdmin);
+      setCurrentUser({
+        email: u?.email || '',
+        isSuperAdmin: isSuper,
+      });
+    } catch (err) {
+      console.warn('Não foi possível identificar sessão em /auth/me:', err);
+    }
+  };
+
+  // Carrega lista de usuários da API real
+  const carregarUsuarios = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/admin/usuarios');
+      const list = res.data?.data || [];
+      setUsers(list);
+    } catch (err: any) {
+      console.error('Erro ao carregar usuários:', err);
+      showToast('Não foi possível carregar a lista de usuários da API.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarSessao();
+    carregarUsuarios();
+  }, []);
+
+  // Alterna status (Ativo/Inativo)
+  const handleToggleStatus = async (id: string | number, currentStatus?: string) => {
+    const isAtivo = currentStatus?.toLowerCase() === 'ativo';
+    const acao = isAtivo ? 'inativar' : 'reativar';
+
+    if (!window.confirm(`Tem certeza que deseja ${acao} este usuário?`)) {
+      return;
+    }
+
+    try {
+      await api.patch(`/admin/usuarios/${id}/toggle-status`);
+      showToast(`Status do usuário atualizado com sucesso!`, 'success');
+      // Atualiza estado local imediatamente
+      setUsers((prev) =>
+        prev.map((u) => {
+          if (String(u.id) === String(id)) {
+            const nextStatus = isAtivo ? 'inativo' : 'ativo';
+            return { ...u, status: nextStatus };
+          }
+          return u;
+        })
+      );
+    } catch (err: any) {
+      console.error('Erro ao alterar status:', err);
+      const msg = err.response?.data?.message || 'Falha ao alterar status do usuário.';
+      showToast(msg, 'error');
+    }
+  };
+
+  // Cadastro de Novo Administrador
+  const handleCreateAdmin = async (data: CreateAdminData) => {
+    try {
+      setSavingAdmin(true);
+      await api.post('/usuarios', {
+        first_name: data.firstName,
+        last_name: data.lastName,
+        email: data.email,
+        cpf: data.cpf,
+        phone: data.phone,
+        password: data.password,
+        role: 'admin',
+        type: 'Administrador',
+      });
+      showToast('Novo Administrador cadastrado com sucesso!', 'success');
+      setIsModalOpen(false);
+      await carregarUsuarios();
+    } catch (err: any) {
+      console.error('Erro ao cadastrar administrador:', err);
+      const msg = err.response?.data?.message || 'Falha ao cadastrar administrador.';
+      showToast(msg, 'error');
+    } finally {
+      setSavingAdmin(false);
+    }
+  };
+
+  // Separação em abas por tipo
+  const clientesList = users.filter((u) => {
+    const isAdm =
+      u.type === 'Administrador' ||
+      u.role === 'admin' ||
+      u.role === 'Administrador';
+    return !isAdm;
   });
 
-  const formatCep = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 8); // só números, máximo 8
-    if (digits.length <= 5) return digits;
-    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
-  };
+  const administradoresList = users.filter((u) => {
+    const isAdm =
+      u.type === 'Administrador' ||
+      u.role === 'admin' ||
+      u.role === 'Administrador';
+    return isAdm;
+  });
 
-  const formatCpf = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 11); // só números, máximo 11
+  // Lista base da aba ativa
+  const currentTabList = activeTab === 'clientes' ? clientesList : administradoresList;
 
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-  };
+  // Filtro por termo de busca
+  const filteredUsers = currentTabList.filter((user) => {
+    const term = searchTerm.toLowerCase();
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
+    const email = (user.email || '').toLowerCase();
+    const cpf = (user.cpf || '').toLowerCase();
+    const city = (user.city || '').toLowerCase();
+    return (
+      fullName.includes(term) ||
+      email.includes(term) ||
+      cpf.includes(term) ||
+      city.includes(term)
+    );
+  });
 
-  const formatStreetNumber = (value: string) => {
-    return value.replace(/\D/g, ''); // só números
-  };
-
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 11); // só números, máximo 11
-
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-  };
-
-  const isValidEmail = (value: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value);
-  };
-
-  const handleEdit = (id: number | string): void => {
-    const user = users.find(u => u.id === id);
-    if (user) {
-      setFormData(user);
-      setEditingId(id);
-      setFormMode('edit');
-    }
-  };
-  
-  const handleNovoUsuario = (): void => {
-    const today = new Date().toLocaleDateString('pt-BR');
-    setFormData({ 
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      cpf: '',
-      cep: '',
-      sreet: '', // rua
-      sreet_number: '', //número da rua
-      block: '', //bairro
-      city: '', //cidade
-      state: '', //estado
-      type: 'Cliente',
-      provider: 'Email/Senha',
-      status: 'Ativo',
-      createdAt: today
-    });
-    setFormMode('create');
-  };
-  
-  const handleCloseForm = (): void => {
-    setFormMode(null);
-    setEditingId(null);
-  };
-
-  const filteredUsers = users.filter(user =>
-    `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.cpf && user.cpf.includes(searchTerm))
-  );
-
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
-    e.preventDefault();
-    if (formMode === 'edit') {
-      setUsers(users.map(u => u.id === editingId ? { ...formData, id: editingId } : u));
-    } else {
-      setUsers([...users, { ...formData, id: Date.now() }]);
-    }
-    handleCloseForm();
-  };
+  const isSuperAdmin = Boolean(currentUser?.isSuperAdmin);
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-800 antialiased overflow-x-hidden">
+    <div className="flex bg-slate-50 min-h-screen text-slate-800">
       <Sidebar activePage="usuarios" />
 
-      <main className="flex-1 min-w-0 pl-72 pt-8 pb-10 pr-4 lg:pr-8 xl:pr-12 2xl:pr-16">
-        <div className="max-w-[1600px] mx-auto space-y-6 min-w-0">
-          
-          <PageHeader_usuario
-            title="Gestão de Usuários" 
-            subtitle="Gerencie as permissões e cadastros dos usuários e clientes" 
-            buttonText="Novo Usuário"
-            onButtonClick={handleNovoUsuario}
-            showButton={formMode === null}
-            buttonClassName="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors px-4 py-2 text-sm flex items-center shadow-sm"
-          />
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
-          {formMode !== null ? (
-            <div className="w-full bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
-              <h2 className="text-xl font-bold text-slate-900">
-                {formMode === 'edit' ? 'Editar Usuário' : 'Cadastrar Novo Usuário'}
-              </h2>
-              
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Nome</label>
-                    <input type="text" className="p-2 border border-slate-200 rounded-lg" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} required />
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Sobrenome</label>
-                    <input type="text" className="p-2 border border-slate-200 rounded-lg" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} required />
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">E-mail</label>
-                    <input
-                      type="email"
-                      className={`p-2 border rounded-lg ${
-                        formData.email && !isValidEmail(formData.email)
-                          ? 'border-red-400'
-                          : 'border-slate-200'
-                      }`}
-                      value={formData.email || ''}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value.trim().toLowerCase() })}
-                      placeholder="seuemail@exemplo.com"
-                      required
-                    />
-                    {formData.email && !isValidEmail(formData.email) && (
-                      <span className="text-xs text-red-500">Digite um e-mail válido</span>
-                    )}
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Telefone</label>
-                    <input
-                      type="text"
-                      className="p-2 border border-slate-200 rounded-lg"
-                      value={formData.phone || ''}
-                      onChange={(e) => {
-                        const formatted = formatPhone(e.target.value);
-                        setFormData({ ...formData, phone: formatted });
-                      }}
-                      maxLength={15} // (xx) xxxxx-xxxx
-                      inputMode="numeric"
-                      placeholder="(00) 00000-0000"
-                      required
-                    />
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">CPF</label>
-                    <input
-                      type="text"
-                      className={`p-2 border rounded-lg ${
-                        formMode === 'edit'
-                          ? 'border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed'
-                          : 'border-slate-200'
-                      }`}
-                      value={formData.cpf || ''}
-                      onChange={(e) => {
-                        if (formMode === 'edit') return;
-                        const formatted = formatCpf(e.target.value);
-                        setFormData({ ...formData, cpf: formatted });
-                      }}
-                      maxLength={14} // 11 números + 2 pontos + 1 hífen
-                      inputMode="numeric"
-                      placeholder="000.000.000-00"
-                      disabled={formMode === 'edit'}
-                      required
-                    />
-                    {formMode === 'edit' && (
-                      <span className="text-xs text-slate-400">
-                        O CPF não pode ser alterado após o cadastro.
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                      <label className="text-sm font-medium text-slate-600">CEP</label>
-                      <input
-                        type="text"
-                        className="p-2 border border-slate-200 rounded-lg"
-                        value={formData.cep || ''}
-                        onChange={(e) => {
-                          const formatted = formatCep(e.target.value);
-                          setFormData({ ...formData, cep: formatted });
-                        }}
-                        maxLength={9} // 8 números + 1 hífen
-                        inputMode="numeric"
-                        placeholder="00000-000"
-                      />
-                    </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Rua</label>
-                    <input
-                      type="text"
-                      className="p-2 border border-slate-200 rounded-lg"
-                      value={formData.sreet || ''}
-                      onChange={(e) => setFormData({ ...formData, sreet: e.target.value })}
-                      placeholder="Rua das Flores"
-                    />
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Número</label>
-                    <input
-                      type="text"
-                      className="p-2 border border-slate-200 rounded-lg"
-                      value={formData.sreet_number || ''}
-                      onChange={(e) => {
-                        const formatted = formatStreetNumber(e.target.value);
-                        setFormData({ ...formData, sreet_number: formatted });
-                      }}
-                      inputMode="numeric"
-                      placeholder="123"
-                    />
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Bairro</label>
-                    <input
-                      type="text"
-                      className="p-2 border border-slate-200 rounded-lg"
-                      value={formData.block || ''}
-                      onChange={(e) => setFormData({ ...formData, block: e.target.value })}
-                      placeholder="Centro"
-                    />
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Cidade</label>
-                    <input
-                      type="text"
-                      className="p-2 border border-slate-200 rounded-lg"
-                      value={formData.city || ''}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="São Paulo"
-                    />
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Estado</label>
-                    <select
-                      className="p-2 border border-slate-200 rounded-lg bg-white"
-                      value={formData.state || ''}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    >
-                      <option value="">Selecione</option>
-                      {BRAZILIAN_STATES.map((uf) => (
-                        <option key={uf} value={uf}>{uf}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Tipo de Usuário</label>
-                    <select className="p-2 border border-slate-200 rounded-lg bg-white" value={formData.type || 'Cliente'} onChange={(e) => setFormData({...formData, type: e.target.value})}>
-                      <option value="Cliente">Cliente</option>
-                      <option value="Administrador">Administrador</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Provedor</label>
-                    <select className="p-2 border border-slate-200 rounded-lg bg-white" value={formData.provider || 'Email/Senha'} onChange={(e) => setFormData({...formData, provider: e.target.value})}>
-                      <option value="Email/Senha">Email/Senha</option>
-                      <option value="Google">Google</option>
-                      <option value="Apple">Apple</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Status</label>
-                    <select className="p-2 border border-slate-200 rounded-lg bg-white" value={formData.status || 'Ativo'} onChange={(e) => setFormData({...formData, status: e.target.value})}>
-                      <option value="Ativo">Ativo</option>
-                      <option value="Inativo">Inativo</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">Data de Criação</label>
-                    <input type="text" className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed" value={formData.createdAt || ''} readOnly />
-                  </div>
-                </div>
+      <main className="flex-1 ml-64 p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header da Página */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-slate-900">Gestão de Usuários</h1>
+                {isSuperAdmin && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    Modo Super ADM
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-slate-500">
+                Gerencie clientes da loja e operadores administradores do sistema
+              </p>
+            </div>
 
-                <div className="flex space-x-3 pt-4">
-                  <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-                    {formMode === 'edit' ? 'Atualizar usuário' : 'Salvar Usuário'}
-                  </button>
-                  <button type="button" onClick={handleCloseForm} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors">
-                    Cancelar
-                  </button>
-                </div>
-              </form>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={carregarUsuarios}
+                disabled={loading}
+                className="p-2 text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+                title="Recarregar dados"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+
+              {activeTab === 'administradores' && isSuperAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition-colors shadow-sm cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Novo Administrador</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Abas Superiores [ ■ Clientes ] e [ ■■ Administradores ] */}
+          <div className="flex items-center gap-3 border-b border-slate-200 pb-px">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('clientes');
+                setSearchTerm('');
+              }}
+              className={`flex items-center gap-2.5 px-5 py-3 font-semibold text-sm border-b-2 transition-all cursor-pointer ${
+                activeTab === 'clientes'
+                  ? 'border-blue-600 text-blue-600 bg-white/50 rounded-t-lg'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Clientes</span>
+              <span
+                className={`ml-1 text-xs px-2 py-0.5 rounded-full font-bold ${
+                  activeTab === 'clientes'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-slate-200 text-slate-600'
+                }`}
+              >
+                {clientesList.length}
+              </span>
+            </button>
+
+            {/* Aba Administradores visível para todos os admins, ou com badge de acesso restrito */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('administradores');
+                setSearchTerm('');
+              }}
+              className={`flex items-center gap-2.5 px-5 py-3 font-semibold text-sm border-b-2 transition-all cursor-pointer ${
+                activeTab === 'administradores'
+                  ? 'border-purple-600 text-purple-600 bg-white/50 rounded-t-lg'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              <span>Administradores</span>
+              <span
+                className={`ml-1 text-xs px-2 py-0.5 rounded-full font-bold ${
+                  activeTab === 'administradores'
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-slate-200 text-slate-600'
+                }`}
+              >
+                {administradoresList.length}
+              </span>
+            </button>
+          </div>
+
+          {/* Banner de permissão para operadores comuns na aba de Administradores */}
+          {activeTab === 'administradores' && !isSuperAdmin && (
+            <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-xl flex items-center gap-2.5 text-xs text-purple-900">
+              <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+              <span>
+                Visualização em modo somente-leitura. Apenas o <strong>Administrador Principal (Super ADM)</strong> pode cadastrar novos administradores ou alterar permissões de acesso.
+              </span>
+            </div>
+          )}
+
+          {/* Barra de Busca */}
+          <div className="w-full">
+            <SearchInput
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={`Buscar em ${activeTab === 'clientes' ? 'clientes' : 'administradores'} por nome, email, CPF ou cidade...`}
+            />
+          </div>
+
+          {/* Conteúdo Principal / Tabela */}
+          {loading ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
+              <div className="w-8 h-8 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm">Carregando usuários da API...</p>
             </div>
           ) : (
-            <>
-              <div className="w-full bg-white rounded-xl mb-5 mt-7">
-                <SearchInput value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar usuários..." />
-              </div>
-              <UserTable users={filteredUsers as any} onEdit={handleEdit} />
-            </>
+            <UserTable
+              users={filteredUsers}
+              activeTab={activeTab}
+              onToggleStatus={
+                // Se for aba administradores e não for super admin, não passa ação de toggle
+                activeTab === 'administradores' && !isSuperAdmin ? undefined : handleToggleStatus
+              }
+              isCurrentUserSuperAdmin={isSuperAdmin}
+            />
           )}
         </div>
       </main>
+
+      {/* Modal de Criação de Administrador */}
+      <NovoAdminModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateAdmin}
+        loading={savingAdmin}
+      />
     </div>
   );
 }
