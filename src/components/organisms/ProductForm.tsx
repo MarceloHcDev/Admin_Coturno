@@ -1,5 +1,15 @@
-import React, { ChangeEvent, FormEvent, useMemo, useEffect, useState, useRef } from "react";
-import { ProductFormData, AVAILABLE_SIZES } from "../../hooks/useProdutosCatalogo";
+import React, {
+  ChangeEvent,
+  FormEvent,
+  useMemo,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
+import {
+  ProductFormData,
+  AVAILABLE_SIZES,
+} from "../../hooks/useProdutosCatalogo";
 
 export interface ProductFormProps {
   formMode: "create" | "edit";
@@ -49,7 +59,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const slotsRestantes = Math.max(0, 6 - totalFotosAtivas);
 
   const [bulkQuantity, setBulkQuantity] = useState<string>("5");
-  const [activePopup, setActivePopup] = useState<"tipo" | "terreno" | "marca" | null>(null);
+  const [activePopup, setActivePopup] = useState<
+    "tipo" | "terreno" | "marca" | null
+  >(null);
 
   const tipoRef = useRef<HTMLDivElement>(null);
   const terrenoRef = useRef<HTMLDivElement>(null);
@@ -91,7 +103,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     if (!formData.grade) return 0;
     return Object.values(formData.grade).reduce(
       (acc, val) => acc + (Number(val) || 0),
-      0
+      0,
     );
   }, [formData.grade]);
 
@@ -99,7 +111,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     const updatedGrade = { ...(formData.grade || {}), [size]: qty };
     const total = Object.values(updatedGrade).reduce(
       (acc, val) => acc + (Number(val) || 0),
-      0
+      0,
     );
     const activeSizes = Object.entries(updatedGrade)
       .filter(([_, q]) => Number(q) > 0)
@@ -194,7 +206,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               required
             />
             {activePopup === "tipo" && topTipos && topTipos.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-60 p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
                 <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
                   <span className="text-[11px] font-bold text-slate-700">
                     Mais frequentes:
@@ -213,7 +225,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         setActivePopup(null);
                       }}
                       className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
-                        formData.productType?.toLowerCase() === tipo.toLowerCase()
+                        formData.productType?.toLowerCase() ===
+                        tipo.toLowerCase()
                           ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
                           : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
                       }`}
@@ -249,7 +262,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               }
             />
             {activePopup === "terreno" && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-60 p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
                 <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
                   <span className="text-[11px] font-bold text-slate-700">
                     Opções de Terreno:
@@ -259,25 +272,32 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {["Multiterreno", "Tático/Militar", "Urbano/Asfalto", "Trilha/Lama"].map(
-                    (terreno) => (
-                      <button
-                        key={terreno}
-                        type="button"
-                        onClick={() => {
-                          setFormData((prev) => ({ ...prev, terrainType: terreno }));
-                          setActivePopup(null);
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
-                          formData.terrainType?.toLowerCase() === terreno.toLowerCase()
-                            ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
-                            : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
-                        }`}
-                      >
-                        {terreno}
-                      </button>
-                    )
-                  )}
+                  {[
+                    "Multiterreno",
+                    "Tático/Militar",
+                    "Urbano/Asfalto",
+                    "Trilha/Lama",
+                  ].map((terreno) => (
+                    <button
+                      key={terreno}
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          terrainType: terreno,
+                        }));
+                        setActivePopup(null);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                        formData.terrainType?.toLowerCase() ===
+                        terreno.toLowerCase()
+                          ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                          : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      {terreno}
+                    </button>
+                  ))}
                 </div>
                 <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
                   💡 Clique em uma opção acima ou digite livremente no campo.
@@ -316,7 +336,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               required
             />
             {activePopup === "marca" && topMarcas && topMarcas.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-60 p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
                 <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
                   <span className="text-[11px] font-bold text-slate-700">
                     Mais frequentes:
@@ -388,7 +408,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
           {/* Cor */}
           <div className="flex flex-col space-y-1">
-            <label className="text-sm font-medium text-slate-600">Cor Predominante</label>
+            <label className="text-sm font-medium text-slate-600">
+              Cor Predominante
+            </label>
             <input
               type="text"
               placeholder="Ex: Preto"
@@ -415,7 +437,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Defina a quantidade exata para cada numeração. Os tamanhos com quantidade maior que zero serão exibidos na loja.
+                Defina a quantidade exata para cada numeração. Os tamanhos com
+                quantidade maior que zero serão exibidos na loja.
               </p>
             </div>
 
@@ -490,7 +513,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     value={qty === 0 ? "" : qty}
                     placeholder="0"
                     onChange={(e) => {
-                      const val = Math.max(0, parseInt(e.target.value || "0", 10));
+                      const val = Math.max(
+                        0,
+                        parseInt(e.target.value || "0", 10),
+                      );
                       handleSizeStockChange(size, isNaN(val) ? 0 : val);
                     }}
                   />

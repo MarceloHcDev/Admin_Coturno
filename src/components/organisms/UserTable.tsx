@@ -162,7 +162,7 @@ export const UserTable: React.FC<UserTableProps> = ({
 
                   {/* Campo específico de Cliente: Endereço completo em 2 linhas */}
                   {activeTab === "clientes" && (
-                    <td className="py-3.5 px-3 text-slate-600 text-xs max-w-[240px]">
+                    <td className="py-3.5 px-3 text-slate-600 text-xs max-w-60">
                       <div className="flex flex-col">
                         <span
                           className="text-slate-700 truncate"
