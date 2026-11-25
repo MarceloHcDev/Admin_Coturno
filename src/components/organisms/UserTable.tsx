@@ -1,6 +1,6 @@
 import React from 'react';
-import { UserIcon } from '../atoms/Icons';
-import { Power, CheckCircle2, XCircle, ShieldCheck, Trash2 } from 'lucide-react';
+import { UserIcon, DeleteButton } from '../atoms/Icons';
+import { Power, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
 
 export interface UserItem {
   id: number | string;
@@ -212,15 +212,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                             </button>
                           )}
                           {activeTab === 'administradores' && onDelete && (
-                            <button
-                              type="button"
-                              onClick={() => onDelete(user)}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border bg-white text-slate-600 border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
-                              title="Excluir administrador"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Excluir</span>
-                            </button>
+                            <DeleteButton onClick={() => onDelete(user)} />
                           )}
                         </>
                       )}
