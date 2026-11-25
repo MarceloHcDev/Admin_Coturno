@@ -5,6 +5,7 @@ import UserTable, { UserItem } from '../components/organisms/UserTable';
 import NovoAdminModal, { CreateAdminData } from '../components/organisms/NovoAdminModal';
 import { api } from '../services/api';
 import { Toast, ToastType } from '../components/molecules/Toast';
+import ConfirmModal from '../components/molecules/ConfirmModal';
 import { Users, Shield, UserPlus, RefreshCw, Lock } from 'lucide-react';
 
 export default function UsuariosGestao(): React.JSX.Element {
@@ -14,6 +15,8 @@ export default function UsuariosGestao(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [savingAdmin, setSavingAdmin] = useState<boolean>(false);
+  const [deletingUser, setDeletingUser] = useState<UserItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
   // Informações do administrador logado
@@ -113,6 +116,25 @@ export default function UsuariosGestao(): React.JSX.Element {
       showToast(msg, 'error');
     } finally {
       setSavingAdmin(false);
+    }
+  };
+
+  // Exclusão lógica (Soft Delete) de Administrador
+  const handleConfirmDelete = async () => {
+    if (!deletingUser) return;
+
+    try {
+      setIsDeleting(true);
+      await api.delete(`/usuarios/${deletingUser.id}`);
+      setUsers((prev) => prev.filter((u) => String(u.id) !== String(deletingUser.id)));
+      showToast('Administrador excluído com sucesso!', 'success');
+      setDeletingUser(null);
+    } catch (err: any) {
+      console.error('Erro ao excluir administrador:', err);
+      const msg = err.response?.data?.message || 'Falha ao excluir administrador.';
+      showToast(msg, 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -294,6 +316,11 @@ export default function UsuariosGestao(): React.JSX.Element {
                 // Se for aba administradores e não for super admin, não passa ação de toggle
                 activeTab === 'administradores' && !isSuperAdmin ? undefined : handleToggleStatus
               }
+              onDelete={
+                activeTab === 'administradores' && isSuperAdmin
+                  ? (user) => setDeletingUser(user)
+                  : undefined
+              }
               isCurrentUserSuperAdmin={isSuperAdmin}
             />
           )}
@@ -306,6 +333,22 @@ export default function UsuariosGestao(): React.JSX.Element {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCreateAdmin}
         loading={savingAdmin}
+      />
+
+      {/* Modal de Confirmação de Exclusão (Soft Delete) */}
+      <ConfirmModal
+        isOpen={Boolean(deletingUser)}
+        title="Excluir Administrador"
+        message={
+          deletingUser
+            ? `Tem certeza que deseja excluir o administrador "${deletingUser.firstName} ${deletingUser.lastName}" (${deletingUser.email})? O acesso será revogado imediatamente.`
+            : ''
+        }
+        confirmText="Sim, Excluir"
+        cancelText="Cancelar"
+        loading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingUser(null)}
       />
     </div>
   );

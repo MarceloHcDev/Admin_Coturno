@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserIcon } from '../atoms/Icons';
-import { Power, CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
+import { Power, CheckCircle2, XCircle, ShieldCheck, Trash2 } from 'lucide-react';
 
 export interface UserItem {
   id: number | string;
@@ -31,6 +31,8 @@ export interface UserTableProps {
   activeTab?: 'clientes' | 'administradores';
   /** Callback para alternar status (ativar/inativar) */
   onToggleStatus?: (id: string | number, currentStatus?: string) => void;
+  /** Callback para excluir administrador (soft delete) */
+  onDelete?: (user: UserItem) => void;
   /** Usuário logado é Super ADM? */
   isCurrentUserSuperAdmin?: boolean;
 }
@@ -59,7 +61,7 @@ export const UserTable: React.FC<UserTableProps> = ({
   users = [],
   activeTab = 'clientes',
   onToggleStatus,
-  isCurrentUserSuperAdmin = false,
+  onDelete,
 }) => {
   return (
     <div className="w-full min-w-0 overflow-x-auto bg-white border border-slate-200 rounded-xl shadow-xs">
@@ -193,21 +195,34 @@ export const UserTable: React.FC<UserTableProps> = ({
                           Imune
                         </span>
                       ) : (
-                        onToggleStatus && (
-                          <button
-                            type="button"
-                            onClick={() => onToggleStatus(user.id, user.status)}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
-                              isAtivo
-                                ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                            }`}
-                            title={isAtivo ? 'Inativar acesso' : 'Reativar acesso'}
-                          >
-                            <Power className="w-3.5 h-3.5" />
-                            <span>{isAtivo ? 'Inativar' : 'Reativar'}</span>
-                          </button>
-                        )
+                        <>
+                          {onToggleStatus && (
+                            <button
+                              type="button"
+                              onClick={() => onToggleStatus(user.id, user.status)}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                                isAtivo
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              }`}
+                              title={isAtivo ? 'Inativar acesso' : 'Reativar acesso'}
+                            >
+                              <Power className="w-3.5 h-3.5" />
+                              <span>{isAtivo ? 'Inativar' : 'Reativar'}</span>
+                            </button>
+                          )}
+                          {activeTab === 'administradores' && onDelete && (
+                            <button
+                              type="button"
+                              onClick={() => onDelete(user)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border bg-white text-slate-600 border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
+                              title="Excluir administrador"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Excluir</span>
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   </td>
