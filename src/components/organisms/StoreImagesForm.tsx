@@ -137,11 +137,10 @@ export const StoreImagesForm: React.FC = () => {
       {statusMessage && (
         <div
           role="alert"
-          className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium ${
-            statusMessage.type === 'success'
+          className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium ${statusMessage.type === 'success'
               ? 'bg-green-50 text-green-700 border border-green-200'
               : 'bg-red-50 text-red-700 border border-red-200'
-          }`}
+            }`}
         >
           {statusMessage.type === 'success' ? (
             <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

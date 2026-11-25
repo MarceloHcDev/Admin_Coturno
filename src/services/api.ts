@@ -1,15 +1,15 @@
-// src/services/api.ts
 
+import axios from "axios";
 
-//>>ignorar erro da env
 const API_URL: string =
-  import.meta.env.VITE_API_URL ?? 'http://localhost:8001/api';
+  import.meta.env.VITE_API_URL ?? "http://localhost:8001/api/v1";
 
-const TOKEN_KEY = 'auth_token';
-const USER_KEY = 'auth_user';
+const TOKEN_KEY = "admin_token";
+const USER_KEY = "admin_user";
+const TOKEN_EXPIRATION_KEY = "admin_token_expires_at";
 
 export interface User {
-  id: number;
+  id: string | number;
   first_name: string;
   last_name: string;
   email: string;
@@ -20,6 +20,92 @@ export interface AuthResponse {
   user: User;
   token: string;
 }
+
+export interface BackendAuthResponse {
+  status: string;
+  message: string;
+  data: {
+    usuario: User;
+    token: string;
+    token_type: string;
+    abilities: string[];
+    expires_at: string | null;
+  };
+}
+
+export const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  },
+});
+
+// Adiciona o token automaticamente em todas as requisições.
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+export const authStorage = {
+  getToken: () => localStorage.getItem(TOKEN_KEY),
+
+  getUser: (): User | null => {
+    const raw = localStorage.getItem(USER_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  },
+
+  save: (auth: AuthResponse, expiresAt?: string | null) => {
+    localStorage.setItem(TOKEN_KEY, auth.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(auth.user));
+
+    if (expiresAt) {
+      localStorage.setItem(TOKEN_EXPIRATION_KEY, expiresAt);
+    } else {
+      localStorage.removeItem(TOKEN_EXPIRATION_KEY);
+    }
+  },
+
+  clear: () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_EXPIRATION_KEY);
+  },
+};
+
+export const authService = {
+  login: async (
+    email: string,
+    password: string,
+  ): Promise<AuthResponse> => {
+    const response = await api.post<BackendAuthResponse>(
+      "/auth/login",
+      { email, password },
+    );
+
+    const auth: AuthResponse = {
+      user: response.data.data.usuario,
+      token: response.data.data.token,
+    };
+
+    authStorage.save(auth, response.data.data.expires_at);
+
+    return auth;
+  },
+
+  logout: async (): Promise<void> => {
+    try {
+      await api.post("/auth/logout");
+    } finally {
+      authStorage.clear();
+    }
+  },
+};
 
 export class ApiError extends Error {
   status: number;
@@ -36,68 +122,3 @@ export class ApiError extends Error {
     this.errors = errors;
   }
 }
-
-export const authStorage = {
-  getToken: () => localStorage.getItem(TOKEN_KEY),
-  getUser: (): User | null => {
-    const raw = localStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as User) : null;
-  },
-  save: ({ token, user }: AuthResponse) => {
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-  },
-  clear: () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-  },
-};
-
-export async function api<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const token = authStorage.getToken();
-  const isFormData = options.body instanceof FormData;
-
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      // Com FormData (upload de arquivos) o navegador define o Content-Type
-      // (multipart + boundary) sozinho; forçar JSON quebraria o envio.
-      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-      // Obrigatório para o Laravel responder JSON (e não redirecionar) em erros
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    throw new ApiError(
-      data.message ?? 'Erro ao comunicar com o servidor.',
-      response.status,
-      data.errors ?? {},
-    );
-  }
-
-  return data as T;
-}
-
-export const authService = {
-  login: (email: string, password: string) =>
-    api<AuthResponse>('/v1/admin/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
-
-  logout: async () => {
-    try {
-      await api<{ message: string }>('/v1/admin/auth/logout', { method: 'POST' });
-    } finally {
-      authStorage.clear();
-    }
-  },
-};

@@ -2,7 +2,7 @@ import React, { useState, useEffect, FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, MoveRight, AlertCircle, Clock } from "lucide-react";
 import axios from "axios";
-import { api } from "../services/api";
+import { api, authService, authStorage } from "../services/api";
 
 export default function Login(): React.JSX.Element {
   const navigate = useNavigate();
@@ -18,16 +18,16 @@ export default function Login(): React.JSX.Element {
 
   // Se o usuário já tiver uma sessão válida salva, redireciona direto para o painel
   useEffect(() => {
-    const existingToken = localStorage.getItem("admin_token");
+    const existingToken = authStorage.getToken();
+
     if (existingToken && !isSessionExpired) {
       api
         .get("/auth/me")
         .then(() => {
-          navigate("/admin/produtos", { replace: true });
+          navigate("/admin/dashboard", { replace: true });
         })
         .catch(() => {
-          // Token salvo era inválido/expirado, limpa do storage
-          localStorage.removeItem("admin_token");
+          authStorage.clear();
         });
     }
   }, [navigate, isSessionExpired]);
@@ -44,37 +44,22 @@ export default function Login(): React.JSX.Element {
     try {
       setLoading(true);
 
-      const response = await api.post("/auth/login", {
-        email,
-        password,
-      });
+      await authService.login(email, password);
 
-      // Extrai o token e a data de expiração da resposta
-      const token = response.data?.token || response.data?.data?.token;
-      const expiresAt =
-        response.data?.expires_at || response.data?.data?.expires_at;
-
-      if (!token) {
-        throw new Error("Token não retornado pelo servidor.");
-      }
-
-      // Salva no localStorage e segue para o painel
-      localStorage.setItem("admin_token", token);
-      if (expiresAt) {
-        localStorage.setItem("admin_token_expires_at", expiresAt);
-      }
-      navigate("/admin/produtos", { replace: true });
+      navigate("/admin/dashboard", { replace: true });
     } catch (err: unknown) {
       console.error("Erro no login:", err);
-      let apiMsg =
-        "Credenciais inválidas. Verifique os dados e tente novamente.";
+
       if (axios.isAxiosError(err)) {
-        apiMsg =
-          err.response?.data?.message || err.response?.data?.error || apiMsg;
+        setErrorMessage(
+          err.response?.data?.message ||
+          "Credenciais inválidas. Verifique os dados e tente novamente."
+        );
       } else if (err instanceof Error) {
-        apiMsg = err.message;
+        setErrorMessage(err.message);
+      } else {
+        setErrorMessage("Não foi possível realizar o login.");
       }
-      setErrorMessage(apiMsg);
     } finally {
       setLoading(false);
     }
