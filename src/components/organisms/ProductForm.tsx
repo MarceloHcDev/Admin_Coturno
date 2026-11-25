@@ -186,17 +186,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </div>
 
           {/* Tipo do Produto */}
-          <div ref={tipoRef} className="flex flex-col space-y-1 relative">
+          <div className="flex flex-col space-y-1">
             <label className="text-sm font-medium text-slate-600">
               Tipo do produto
             </label>
-            <input
-              type="text"
-              placeholder="Selecione ou digite o tipo..."
+            <select
               className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.productType}
-              onFocus={() => setActivePopup("tipo")}
-              onClick={() => setActivePopup("tipo")}
               onChange={(e) =>
                 setFormData({
                   ...formData,
@@ -204,42 +200,34 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 })
               }
               required
-            />
-            {activePopup === "tipo" && topTipos && topTipos.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-60 p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
-                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
-                  <span className="text-[11px] font-bold text-slate-700">
-                    Mais frequentes:
-                  </span>
-                  <span className="text-[10px] text-blue-600 font-medium">
-                    Clique para selecionar ou digite
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {topTipos.map((tipo) => (
-                    <button
-                      key={tipo}
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, productType: tipo }));
-                        setActivePopup(null);
-                      }}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
-                        formData.productType?.toLowerCase() ===
-                        tipo.toLowerCase()
-                          ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
-                          : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      {tipo}
-                    </button>
-                  ))}
-                </div>
-                <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
-                  💡 Clique em uma opção acima ou digite livremente no campo.
-                </div>
-              </div>
-            )}
+            >
+              <option value="" disabled>
+                Selecione o tipo do produto...
+              </option>
+              <optgroup label="Coturnos e Sapatos">
+                <option value="Coturnos Militares">Coturnos Militares</option>
+                <option value="Sapatos Sociais">Sapatos Sociais</option>
+              </optgroup>
+              <optgroup label="Acessórios">
+                <option value="Cintos e Coldres">Cintos e Coldres</option>
+                <option value="Mochilas">Mochilas</option>
+                <option value="Meias Térmicas">Meias Térmicas</option>
+                <option value="Bonés e Chapéus">Bonés e Chapéus</option>
+              </optgroup>
+              {formData.productType &&
+                ![
+                  "Coturnos Militares",
+                  "Sapatos Sociais",
+                  "Cintos e Coldres",
+                  "Mochilas",
+                  "Meias Térmicas",
+                  "Bonés e Chapéus",
+                ].includes(formData.productType) && (
+                  <option value={formData.productType}>
+                    {formData.productType}
+                  </option>
+                )}
+            </select>
           </div>
 
           {/* Tipo de Terreno */}
