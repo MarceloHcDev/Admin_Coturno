@@ -1,59 +1,77 @@
-// src/components/organisms/TopProductsSection.tsx
-import React from 'react';
-import { ChartHeader } from '../molecules/Chartheader';
-import { ProductRow } from '../molecules/ProductRow';
 
-export interface TopProductItem {
-  id: number;
-  name: string;
-  sales: number;
-  revenue: string;
-  rating: number;
+import React from "react";
+import type { TopProduto } from "../../types/adminDashboard";
+
+interface TopProductsSectionProps {
+  produtos: TopProduto[];
 }
 
-export const TopProductsSection: React.FC = () => {
-  // Dados extraídos com fidelidade cirúrgica a partir da imagem fornecida
-  const productsData: TopProductItem[] = [
-    { id: 1, name: 'Atalaia Combat', sales: 342, revenue: 'R$ 68.400', rating: 4.8 },
-    { id: 2, name: 'Atalaia Montanha', sales: 298, revenue: 'R$ 59.600', rating: 4.9 },
-    { id: 3, name: 'Acero Adventure', sales: 256, revenue: 'R$ 38.400', rating: 4.6 },
-    { id: 4, name: 'MacBoot Montanha', sales: 234, revenue: 'R$ 35.100', rating: 4.7 },
-    { id: 5, name: 'MacBoot Rider', sales: 198, revenue: 'R$ 23.760', rating: 4.5 },
-  ];
-
+export function TopProductsSection({
+  produtos,
+}: TopProductsSectionProps): React.JSX.Element {
   return (
-    <div className="w-full bg-white rounded-xl border border-slate-300 shadow-sm mt-6 overflow-hidden">
-      {/* Cabeçalho da Seção */}
-      <div className="p-6 pb-4">
-        <ChartHeader title="Top 5 Produtos Mais Vendidos" />
-      </div>
+    <section className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+      <h2 className="text-base font-bold text-slate-800 mb-1">
+        Produtos em destaque
+      </h2>
 
-      {/* Tabela Estruturada */}
-      <div className="w-full overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+      <p className="text-xs text-slate-400 mb-6">
+        Produtos retornados pelo painel administrativo
+      </p>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 tracking-wider bg-slate-50/30">
-              <th className="py-3.5 pl-6 font-semibold">PRODUTO</th>
-              <th className="py-3.5 font-semibold">VENDAS</th>
-              <th className="py-3.5 font-semibold">RECEITA</th>
-              <th className="py-3.5 pr-6 font-semibold">AVALIAÇÃO</th>
+            <tr className="text-left text-xs text-slate-400 border-b">
+              <th className="pb-3">Produto</th>
+              <th className="pb-3">Vendas</th>
+              <th className="pb-3">Receita estimada</th>
             </tr>
           </thead>
+
           <tbody>
-            {productsData.map((product) => (
-              <ProductRow
-                key={product.id}
-                name={product.name}
-                sales={product.sales}
-                revenue={product.revenue}
-                rating={product.rating}
-              />
-            ))}
+            {produtos.length > 0 ? (
+              produtos.map((produto) => (
+                <tr
+                  key={produto.id}
+                  className="border-b border-slate-100"
+                >
+                  <td className="py-4">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={produto.image || produto.foto}
+                        alt={produto.name}
+                        className="w-12 h-12 rounded-lg object-cover bg-slate-100"
+                      />
+
+                      <span className="font-semibold text-slate-700">
+                        {produto.name}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td className="py-4 text-slate-600">
+                    {produto.sales}
+                  </td>
+
+                  <td className="py-4 font-medium text-slate-700">
+                    {produto.revenue}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={3}
+                  className="py-8 text-center text-slate-400"
+                >
+                  Nenhum produto disponível.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
-};
-
-export default TopProductsSection;
+}

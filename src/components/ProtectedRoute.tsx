@@ -1,72 +1,105 @@
+
 import React, { useEffect, useState } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
+import axios from "axios";
 import { api } from "../services/api";
 
 export default function ProtectedRoute(): React.JSX.Element {
   const token = localStorage.getItem("admin_token");
   const expiresAt = localStorage.getItem("admin_token_expires_at");
 
-  // 1. Verificação instantânea (0ms): checa se a data de expiração do token já venceu
   const isTimeExpired = Boolean(
-    expiresAt && new Date(expiresAt).getTime() <= Date.now(),
+    expiresAt && new Date(expiresAt).getTime() <= Date.now()
   );
 
-  const [isValidating, setIsValidating] = useState<boolean>(
-    Boolean(token) && !isTimeExpired,
+  const [isValidating, setIsValidating] = useState(
+    Boolean(token) && !isTimeExpired
   );
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    Boolean(token) && !isTimeExpired,
-  );
-  const location = useLocation();
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [validationError, setValidationError] = useState(false);
 
   useEffect(() => {
-    if (!token || isTimeExpired) {
-      localStorage.removeItem("admin_token");
-      localStorage.removeItem("admin_token_expires_at");
-      setIsValidating(false);
-      setIsAuthenticated(false);
-      return;
-    }
+    let isMounted = true;
 
-    // 2. Validação ativa no backend (/auth/me) para garantir que o token não foi revogado
-    api
-      .get("/auth/me")
-      .then(() => {
-        setIsAuthenticated(true);
-      })
-      .catch((err) => {
-        if (err.response?.status === 401 || err.response?.status === 403) {
+    async function validateSession() {
+      if (!token || isTimeExpired) {
+        localStorage.removeItem("admin_token");
+        localStorage.removeItem("admin_token_expires_at");
+
+        setIsAuthenticated(false);
+        setIsValidating(false);
+        return;
+      }
+
+      try {
+        await api.get("/auth/me");
+
+        if (isMounted) {
+          setIsAuthenticated(true);
+          setValidationError(false);
+        }
+      } catch (error: unknown) {
+        if (!isMounted) return;
+
+        if (
+          axios.isAxiosError(error) &&
+          error.response?.status === 401
+        ) {
           localStorage.removeItem("admin_token");
           localStorage.removeItem("admin_token_expires_at");
-          setIsAuthenticated(false);
-        }
-      })
-      .finally(() => {
-        setIsValidating(false);
-      });
-  }, [token, isTimeExpired, location.pathname]);
 
-  if (!token || isTimeExpired || !isAuthenticated) {
-    if (isValidating) {
-      return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-          <div className="w-8 h-8 border-3 border-slate-300 border-t-black rounded-full animate-spin mb-3" />
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-            Validando sessão...
-          </p>
-        </div>
-      );
+          setIsAuthenticated(false);
+          return;
+        }
+
+        // Erros 403, 500 e falhas de conexão não removem o token.
+        console.error("Erro ao validar sessão:", error);
+
+        setValidationError(true);
+      } finally {
+        if (isMounted) {
+          setIsValidating(false);
+        }
+      }
     }
-    return <Navigate to="/login?session_expired=1" replace />;
-  }
+
+    validateSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token, isTimeExpired]);
 
   if (isValidating) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
         <div className="w-8 h-8 border-3 border-slate-300 border-t-black rounded-full animate-spin mb-3" />
+
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-          Carregando painel...
+          Validando sessão...
         </p>
+      </div>
+    );
+  }
+
+  if (!token || isTimeExpired || (!isAuthenticated && !validationError)) {
+    return <Navigate to="/login?session_expired=1" replace />;
+  }
+
+  if (validationError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <p className="text-sm text-slate-600 mb-4">
+          Não foi possível validar sua sessão. Verifique sua conexão ou tente novamente.
+        </p>
+
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-black text-white rounded-md"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

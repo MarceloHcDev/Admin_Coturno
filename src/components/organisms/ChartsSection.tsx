@@ -1,267 +1,367 @@
 // src/components/organisms/ChartsSection.tsx
-import React, { useState } from 'react';
-import { ChartHeader } from '../molecules/Chartheader';
+import React, { useState } from "react";
 
-// Interface para os dados brutos de entrada do JSON
-export interface ProdutoCategoria {
-  nome: string;
-  quantidade: number;
-}
-
-export interface DadosCategoriasJSON {
-  produtos: ProdutoCategoria[];
-}
-
-// Interfaces para os estados e tipos calculados do gráfico
 export interface VendaMensal {
   mes: string;
   vendas: number;
   pedidos: number;
 }
 
-export interface CategoriaGrafico {
+export interface CategoriaDashboard {
   nome: string;
+  quantidade: number;
   porcentagem: number;
   cor: string;
   classesTexto: string;
 }
 
-export interface Coordenada {
-  x: number;
-  y: number;
+interface ChartsSectionProps {
+  vendasMensais: VendaMensal[];
+  categorias: CategoriaDashboard[];
 }
 
-// 1) Arquivo JSON simulado contendo a quantidade de cada categoria
-const DADOS_CATEGORIAS_JSON: DadosCategoriasJSON = {
-  produtos: [
-    { nome: "Coturno", quantidade: 35 },
-    { nome: "Sapato social", quantidade: 20 },
-    { nome: "Borzeguim", quantidade: 21 }
-  ]
-};
+export function ChartsSection({
+  vendasMensais,
+  categorias,
+}: ChartsSectionProps): React.JSX.Element {
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    y: number;
+    mes: string;
+    vendas: number;
+    pedidos: number;
+  } | null>(null);
 
-// 2) Soma dinamicamente os produtos para garantir que o total represente 100%
-const calcularPorcentagens = (dadosJson: DadosCategoriasJSON): { nome: string; porcentagem: number }[] => {
-  const totalGeral = dadosJson.produtos.reduce((acc, item) => acc + item.quantidade, 0) || 1;
-  
-  return dadosJson.produtos.map(item => {
-    const calculoPct = (item.quantidade / totalGeral) * 100;
-    return {
-      nome: item.nome,
-      porcentagem: Math.round(calculoPct)
-    };
-  });
-};
+  // Configurações dimensionais do gráfico de vendas
+  const largura = 600;
+  const altura = 240;
+  const margemEsquerda = 50;
+  const margemDireita = 45; // Espaço para a legenda do eixo Y direito (pedidos)
+  const margemSuperior = 20;
+  const margemInferior = 35;
 
-// 3) Armazena esses valores calculados em uma variável de escopo
-const porcentagensCalculadas = calcularPorcentagens(DADOS_CATEGORIAS_JSON);
+  const areaLargura = largura - margemEsquerda - margemDireita;
+  const areaAltura = altura - margemSuperior - margemInferior;
 
-const obterPctPorNome = (nome: string): number => {
-  const categoriaEncontrada = porcentagensCalculadas.find(c => c.nome === nome);
-  return categoriaEncontrada ? categoriaEncontrada.porcentagem : 0;
-};
+  // 1. Escala de Vendas (Eixo Y Esquerdo - R$)
+  const maiorVenda = Math.max(...vendasMensais.map((item) => item.vendas), 0);
+  const maxValorYVendas = Math.max(Math.ceil((maiorVenda || 1000) / 1000) * 1000, 1000);
 
-const DADOS_INICIAIS: { vendasMensais: VendaMensal[]; categorias: CategoriaGrafico[] } = {
-  vendasMensais: [
-    { mes: 'Jan', vendas: 2000, pedidos: 1000 },
-    { mes: 'Fev', vendas: 3900, pedidos: 234 },
-    { mes: 'Mar', vendas: 3100, pedidos: 234 },
-    { mes: 'Abr', vendas: 5400, pedidos: 234 },
-    { mes: 'Mai', vendas: 6500, pedidos: 234 },
-    { mes: 'Jun', vendas: 6000, pedidos: 8000 },
-    { mes: 'Jul', vendas: 2000, pedidos: 1000 },
-    { mes: 'Ago', vendas: 3900, pedidos: 234 },
-    { mes: 'Set', vendas: 3100, pedidos: 234 },
-    { mes: 'Out', vendas: 5400, pedidos: 234 },
-    { mes: 'Nov', vendas: 6500, pedidos: 234 },
-    { mes: 'Dez', vendas: 6000, pedidos: 8000 },
-  ],
-  categorias: [
-    { nome: 'Coturno', porcentagem: obterPctPorNome('Coturno'), cor: '#142952', classesTexto: 'text-azul' },
-    { nome: 'Sapato social', porcentagem: obterPctPorNome('Sapato social'), cor: '#000000', classesTexto: 'text-preto' },
-    { nome: 'Borzeguim', porcentagem: obterPctPorNome('Borzeguim'), cor: '#4a5c3a', classesTexto: 'text-army' }
-  ]
-};
+  // 2. Escala de Pedidos (Eixo Y Direito - Unidades)
+  const maiorPedido = Math.max(...vendasMensais.map((item) => item.pedidos), 0);
+  const maxValorYPedidos = Math.max(Math.ceil((maiorPedido || 10) / 5) * 5, 5);
 
-export const ChartsSection: React.FC = () => {
-  const [dadosDashboard] = useState(DADOS_INICIAIS);
-  const { vendasMensais, categorias } = dadosDashboard;
+  const obterCoordenadas = (
+    valor: number,
+    indice: number,
+    maxValor: number
+  ): { x: number; y: number } => {
+    const totalPontos = vendasMensais.length;
+    const x =
+      margemEsquerda +
+      (totalPontos <= 1 ? areaLargura / 2 : (indice / (totalPontos - 1)) * areaLargura);
 
-  // --- CONFIGURAÇÕES DO GRÁFICO DE LINHAS (SVG) ---
-  const svgWidth = 500;
-  const svgHeight = 100;
-  const maxValorY = 8000; 
-  const totalPontos = vendasMensais.length;
+    const proporcao = maxValor > 0 ? valor / maxValor : 0;
+    const y = margemSuperior + areaAltura - proporcao * areaAltura;
 
-  const obterCoordenadas = (index: number, valor: number): Coordenada => {
-    const valorNumerico = Number(valor) || 0;
-    const x = 15 + (index / (totalPontos - 1)) * (svgWidth - 30);
-    const y = svgHeight - (valorNumerico / maxValorY) * svgHeight;
     return { x, y };
   };
 
-  const pointsVendas = vendasMensais.map((d, i) => obterCoordenadas(i, d.vendas));
-  const pointsPedidos = vendasMensais.map((d, i) => obterCoordenadas(i, d.pedidos));
+  // Coordenadas calculadas de forma independente com suas respectivas escalas
+  const pontosVendas = vendasMensais
+    .map((item, indice) => {
+      const ponto = obterCoordenadas(item.vendas, indice, maxValorYVendas);
+      return `${ponto.x},${ponto.y}`;
+    })
+    .join(" ");
 
-  const gerarCaminhoSuave = (pontos: Coordenada[]): string => {
-    if (pontos.length === 0) return '';
-    let d = `M ${pontos[0].x} ${pontos[0].y}`;
-    for (let i = 0; i < pontos.length - 1; i++) {
-      const p0 = pontos[i];
-      const p1 = pontos[i + 1];
-      const cpX1 = p0.x + (p1.x - p0.x) / 3;
-      const cpY1 = p0.y;
-      const cpX2 = p0.x + (2 * (p1.x - p0.x)) / 3;
-      const cpY2 = p1.y;
-      d += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${p1.x} ${p1.y}`;
+  const pontosPedidos = vendasMensais
+    .map((item, indice) => {
+      const ponto = obterCoordenadas(item.pedidos, indice, maxValorYPedidos);
+      return `${ponto.x},${ponto.y}`;
+    })
+    .join(" ");
+
+  // Configurações do gráfico de categorias
+  const totalCategorias = categorias.reduce(
+    (total, categoria) => total + categoria.quantidade,
+    0
+  );
+
+  const PALETA_FALLBACK = [
+    "#142952", // Azul marinho
+    "#4a5c3a", // Verde oliva
+    "#D4AF37", // Dourado
+    "#334155", // Slate
+    "#e11d48", // Rose
+    "#0284c7", // Sky
+  ];
+
+  // Garante que a fatia da pizza e a legenda utilizem exatamente as mesmas cores
+  const categoriasNormalizadas = categorias.map((cat, idx) => ({
+    ...cat,
+    corFinal: cat.cor || PALETA_FALLBACK[idx % PALETA_FALLBACK.length],
+    percentualCalculado:
+      totalCategorias > 0 ? (cat.quantidade / totalCategorias) * 100 : cat.porcentagem || 0,
+  }));
+
+  const gerarGraficoPizza = () => {
+    if (categoriasNormalizadas.length === 0 || totalCategorias === 0) {
+      return "conic-gradient(#E2E8F0 0% 100%)";
     }
-    return d;
+
+    let acumulado = 0;
+    const partes = categoriasNormalizadas.map((cat) => {
+      const inicio = acumulado;
+      acumulado += cat.percentualCalculado;
+      return `${cat.corFinal} ${inicio}% ${acumulado}%`;
+    });
+
+    return `conic-gradient(${partes.join(", ")})`;
   };
 
-  const pathVendas = gerarCaminhoSuave(pointsVendas);
-  const pathPedidos = gerarCaminhoSuave(pointsPedidos);
-
-  // --- CONFIGURAÇÕES AUXILIARES DO GRÁFICO DE PIZZA (PATH REAL) ---
-  const centroX = 16;
-  const centroY = 16;
-  const raio = 16;
-
-  const obterCoordenadasCirculo = (porcentagem: number): Coordenada => {
-    const anguloRadianos = ((porcentagem / 100) * 360 - 90) * (Math.PI / 180);
-    return {
-      x: centroX + raio * Math.cos(anguloRadianos),
-      y: centroY + raio * Math.sin(anguloRadianos)
-    };
+  const formatarEixoYVendas = (valor: number): string => {
+    if (valor >= 1000) return `${Math.round(valor / 1000)}k`;
+    return String(valor);
   };
+
+  const niveisDivisoes = [4, 3, 2, 1, 0];
 
   return (
-    <section className="grid grid-cols-1 lg:grid-cols-5 gap-6 w-full items-start">
-      
-      {/* Bloco 1: Vendas Mensais */}
-      <div className="bg-white pt-6 pe-8 ps-6 pb-5 rounded-xl border border-slate-300 shadow-sm lg:col-span-3 h-70 flex flex-col justify-between">
-        <ChartHeader title="Vendas Mensais" />
-        
-        <div className="w-full flex justify-left items-left gap-4 text-xs font-semibold mt-1">
-          <div className="flex items-center gap-1 text-blue-400">
-            <span className="font-bold">∘–</span>
-            <span>Vendas (R$)</span>
-          </div>
-          <div className="flex items-center gap-1 text-red">
-            <span className="font-bold text-blue">∘–</span>
-            <span>Pedidos</span>
-          </div>
-        </div>
-
-        <div className="w-full flex-1 relative mt-4 flex flex-col justify-between">
-          <div className="absolute inset-0 bottom-8 flex flex-col justify-between text-[11px] text-slate-600 font-medium">
-            <div className="w-full border-b border-dashed border-slate-600 flex justify-between"><span>8000</span></div>
-            <div className="w-full border-b border-dashed border-slate-600 flex justify-between"><span>6000</span></div>
-            <div className="w-full border-b border-dashed border-slate-600 flex justify-between"><span>4000</span></div>
-            <div className="w-full border-b border-dashed border-slate-600 flex justify-between"><span>2000</span></div>
-            <div className="w-full border-b border-dashed border-slate-600 flex justify-between"><span>0</span></div>
+    <section className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+      {/* Gráfico de Vendas e Pedidos Mensais */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h2 className="text-base font-bold text-slate-800">Visão geral de vendas</h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Acompanhamento mensal de receita (R$) e pedidos
+            </p>
           </div>
 
-          <div className="w-full h-[75%] mt-2 px-5 relative z-10">
-            <svg className="w-full h-full overflow-visible" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
-              <path d={pathPedidos} fill="none" stroke="#142952" strokeWidth="2" />
-              {pointsPedidos.map((p, idx) => (
-                <circle key={`ped-node-${idx}`} cx={p.x} cy={p.y} r="3" fill="white" stroke="#121212" strokeWidth="2" />
-              ))}
-
-              <path d={pathVendas} fill="none" stroke="#1E90FF" strokeWidth="2.5" />
-              {pointsVendas.map((p, idx) => (
-                <circle key={`ven-node-${idx}`} cx={p.x} cy={p.y} r="3.5" fill="white" stroke="#121212" strokeWidth="2" />
-              ))}
-            </svg>
-
-            <div className="w-full flex justify-between px-1 text-[10px] text-slate-600 font-medium z-10 mt-3 max-h-1">
-              {vendasMensais.map((d, idx) => (
-                <span key={`mes-${idx}`}>{d.mes}</span>
-              ))}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-[#D4AF37]" />
+              <span className="text-xs text-slate-500 font-medium">Receita (R$)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-slate-700" />
+              <span className="text-xs text-slate-500 font-medium">Pedidos</span>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Bloco 2: Vendas por Categoria */}
-      <div className="bg-white rounded-xl border border-slate-300 shadow-sm lg:col-span-2 flex flex-col h-70 p-5">
-        <ChartHeader title="Vendas por Categoria" />
-        
-        <div className="flex-1 flex items-center justify-center relative mt-4 w-full h-full min-h-0">
-          <div className="w-40 h-40 flex items-center justify-center relative">
-            
-            <div className="w-full h-full">
-              <svg className="w-full h-full block overflow-visible" viewBox="0 0 32 32">
-                {(() => {
-                  let porcentagemAcumulada = 0;
-                  
-                  return categorias.map((cat, idx) => {
-                    const pct = Number(cat.porcentagem) || 0;
-                    if (pct <= 0) return null;
-
-                    const inicio = obterCoordenadasCirculo(porcentagemAcumulada);
-                    porcentagemAcumulada += pct;
-                    const fim = obterCoordenadasCirculo(porcentagemAcumulada);
-
-                    const grandeArcoFlag = pct > 50 ? 1 : 0;
-
-                    const d = `
-                      M ${centroX} ${centroY}
-                      L ${inicio.x} ${inicio.y}
-                      A ${raio} ${raio} 0 ${grandeArcoFlag} 1 ${fim.x} ${fim.y}
-                      Z
-                    `.trim();
-
-                    return (
-                      <path
-                        key={`pie-segment-${idx}`}
-                        d={d}
-                        fill={cat.cor}
-                      />
-                    );
-                  });
-                })()}
-              </svg>
-            </div>
-
-            {/* ETIQUETAS DINÂMICAS */}
-            {(() => {
-              let faixaInicio = 0;
-              return categorias.map((cat, idx) => {
-                const pct = Number(cat.porcentagem) || 0;
-                if (pct <= 0) return null;
-                
-                const pontoMedioPct = faixaInicio + (pct / 2);
-                faixaInicio += pct;
-
-                const anguloRadianos = ((pontoMedioPct / 100) * 360 - 90) * (Math.PI / 180);
-                const raioProjecao = 55; 
-                
-                const x = 50 + raioProjecao * Math.cos(anguloRadianos);
-                const y = 50 + raioProjecao * Math.sin(anguloRadianos);
+        {vendasMensais.length > 0 ? (
+          <div className="w-full overflow-x-auto relative">
+            <svg
+              viewBox={`0 0 ${largura} ${altura}`}
+              className="w-full min-w-[480px]"
+              role="img"
+              aria-label="Gráfico mensal de vendas e pedidos"
+              onMouseLeave={() => setTooltip(null)}
+            >
+              {/* Linhas de grade e eixos Y (Esquerdo para R$, Direito para Pedidos) */}
+              {niveisDivisoes.map((fator, idx) => {
+                const y = margemSuperior + (idx / 4) * areaAltura;
+                const valorVenda = (maxValorYVendas / 4) * fator;
+                const valorPedido = Math.round((maxValorYPedidos / 4) * fator);
 
                 return (
-                  <span 
-                    key={`lbl-dinamica-${idx}`} 
-                    className={`absolute text-[10px] sm:text-xs font-semibold ${cat.classesTexto} bg-white/95 px-1.5 py-0.5 rounded shadow-sm border border-slate-100 z-10 whitespace-nowrap transition-all duration-300`}
-                    style={{
-                      left: `${x}%`,
-                      top: `${y}%`,
-                      transform: 'translate(-50%, -50%)'
-                    }}
-                  >
-                    {cat.nome}: {pct}%
-                  </span>
-                );
-              });
-            })()}
+                  <g key={idx}>
+                    <line
+                      x1={margemEsquerda}
+                      y1={y}
+                      x2={largura - margemDireita}
+                      y2={y}
+                      stroke="#F1F5F9"
+                      strokeDasharray="3 3"
+                    />
 
+                    {/* Eixo Esquerdo: Vendas em R$ */}
+                    <text
+                      x={margemEsquerda - 8}
+                      y={y + 4}
+                      textAnchor="end"
+                      fontSize="10"
+                      fill="#94A3B8"
+                    >
+                      {formatarEixoYVendas(valorVenda)}
+                    </text>
+
+                    {/* Eixo Direito: Quantidade de Pedidos */}
+                    <text
+                      x={largura - margemDireita + 8}
+                      y={y + 4}
+                      textAnchor="start"
+                      fontSize="10"
+                      fill="#64748B"
+                    >
+                      {valorPedido}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Linha de Vendas (Amarela/Dourada) */}
+              {vendasMensais.length > 1 && (
+                <polyline
+                  points={pontosVendas}
+                  fill="none"
+                  stroke="#D4AF37"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )}
+
+              {/* Linha de Pedidos (Escura) */}
+              {vendasMensais.length > 1 && (
+                <polyline
+                  points={pontosPedidos}
+                  fill="none"
+                  stroke="#334155"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )}
+
+              {/* Pontos clicáveis / hover */}
+              {vendasMensais.map((item, indice) => {
+                const pontoVenda = obterCoordenadas(item.vendas, indice, maxValorYVendas);
+                const pontoPedido = obterCoordenadas(item.pedidos, indice, maxValorYPedidos);
+
+                return (
+                  <g
+                    key={`${item.mes}-${indice}`}
+                    className="cursor-pointer"
+                    onMouseEnter={() =>
+                      setTooltip({
+                        x: pontoVenda.x,
+                        y: pontoVenda.y,
+                        mes: item.mes,
+                        vendas: item.vendas,
+                        pedidos: item.pedidos,
+                      })
+                    }
+                  >
+                    {/* Ponto Venda */}
+                    <circle
+                      cx={pontoVenda.x}
+                      cy={pontoVenda.y}
+                      r="4"
+                      fill="#D4AF37"
+                      className="transition-transform hover:scale-125"
+                    />
+
+                    {/* Ponto Pedido */}
+                    <circle
+                      cx={pontoPedido.x}
+                      cy={pontoPedido.y}
+                      r="4"
+                      fill="#334155"
+                      className="transition-transform hover:scale-125"
+                    />
+
+                    {/* Rótulo do Mês no Eixo X */}
+                    <text
+                      x={pontoVenda.x}
+                      y={altura - 10}
+                      textAnchor="middle"
+                      fontSize="10"
+                      fill="#94A3B8"
+                    >
+                      {item.mes}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Tooltip ao passar o mouse sobre o ponto */}
+            {tooltip && (
+              <div
+                className="absolute pointer-events-none bg-slate-900 text-white text-xs rounded-lg py-1.5 px-3 shadow-lg z-10 -translate-x-1/2 -translate-y-full mb-2"
+                style={{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }}
+              >
+                <p className="font-bold text-amber-400">{tooltip.mes}</p>
+                <p>
+                  Receita:{" "}
+                  {tooltip.vendas.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })}
+                </p>
+                <p>Pedidos: {tooltip.pedidos}</p>
+              </div>
+            )}
           </div>
-        </div>
+        ) : (
+          <p className="text-sm text-slate-400 text-center py-16">
+            Nenhum dado de vendas disponível.
+          </p>
+        )}
       </div>
 
+      {/* Gráfico de Categorias */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <div className="mb-6">
+          <h2 className="text-base font-bold text-slate-800">Vendas por categoria</h2>
+          <p className="text-xs text-slate-400 mt-1">Distribuição dos pedidos por categoria</p>
+        </div>
+
+        {categoriasNormalizadas.length > 0 && totalCategorias > 0 ? (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 py-4">
+            {/* Gráfico Donut */}
+            <div
+              className="w-44 h-44 rounded-full shrink-0 transition-transform duration-300"
+              style={{ background: gerarGraficoPizza() }}
+              role="img"
+              aria-label="Distribuição percentual dos pedidos por categoria"
+            >
+              <div className="w-24 h-24 bg-white rounded-full m-auto relative top-10 flex flex-col items-center justify-center shadow-inner">
+                <span className="text-xl font-bold text-slate-800">
+                  {totalCategorias.toLocaleString("pt-BR")}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">Pedidos</span>
+              </div>
+            </div>
+
+            {/* Legenda com Cores Perfeitamente Sincronizadas */}
+            <div className="flex flex-col gap-3.5 w-full max-w-[240px]">
+              {categoriasNormalizadas.map((categoria, indice) => (
+                <div
+                  key={`${categoria.nome}-${indice}`}
+                  className="flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="w-3.5 h-3.5 rounded-sm shrink-0 shadow-xs"
+                      style={{ backgroundColor: categoria.corFinal }}
+                    />
+                    <span className="text-slate-600 truncate font-medium">
+                      {categoria.nome}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-slate-800 whitespace-nowrap">
+                    <span className="text-slate-400 text-[11px]">
+                      ({categoria.quantidade} {categoria.quantidade === 1 ? 'pedido' : 'pedidos'})
+                    </span>
+                    <span className="font-bold">
+                      {categoria.percentualCalculado.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-400 text-center py-16">
+            Nenhum dado de categoria disponível.
+          </p>
+        )}
+      </div>
     </section>
   );
-};
-
-export default ChartsSection;
+}

@@ -1,67 +1,43 @@
-import React from 'react';
-import { MetricCard } from '../molecules/MetricCard';
-import { CurrencyIcon, CartIcon, BoxIcon, PeopleIcon, IconProps } from '../atoms/Icons';
 
-export interface MetricItem {
-  id: string;
-  label: string;
-  value: string;
-  trend: number;
-  icon: React.ComponentType<IconProps>;
-  bgColor: string;
+import React from "react";
+import type { DashboardMetric } from "../../types/adminDashboard";
+
+interface MetricsGridProps {
+  metrics: DashboardMetric[];
 }
 
-export const MetricsGrid: React.FC = () => {
-  // Dados simulados com base exata na imagem de referência
-  const metricsData: MetricItem[] = [
-    {
-      id: 'receita',
-      label: 'Receita Total',
-      value: 'R$ 147.890',
-      trend: 12.5,
-      icon: CurrencyIcon,
-      bgColor: 'bg-army'
-    },
-    {
-      id: 'pedidos',
-      label: 'Pedidos Hoje',
-      value: '234',
-      trend: 8.2,
-      icon: CartIcon,
-      bgColor: 'bg-marrom'
-    },
-    {
-      id: 'estoque',
-      label: 'Produtos em Estoque',
-      value: '1.456',
-      trend: -3.1,
-      icon: BoxIcon,
-      bgColor: 'bg-azul'
-    },
-    {
-      id: 'clientes',
-      label: 'Clientes Ativos',
-      value: '8.932',
-      trend: 15.3,
-      icon: PeopleIcon,
-      bgColor: 'bg-preto'
-    }
-  ];
+const CORES: Record<DashboardMetric["id"], string> = {
+  receita: "bg-army",
+  pedidos: "bg-marrom",
+  estoque: "bg-azul",
+  clientes: "bg-preto",
+};
 
+export function MetricsGrid({
+  metrics,
+}: MetricsGridProps): React.JSX.Element {
   return (
-    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full mb-2">
-      {metricsData.map((metric) => (
-        <MetricCard
+    <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+      {metrics.map((metric) => (
+        <article
           key={metric.id}
-          label={metric.label}
-          value={metric.value}
-          trend={metric.trend}
-          icon={metric.icon}
-          iconBgColor={metric.bgColor}
-        />
+          className={`${CORES[metric.id]} rounded-2xl p-5 text-white shadow-sm`}
+        >
+          <p className="text-sm opacity-80">{metric.label}</p>
+
+          <p className="text-2xl font-bold mt-3">
+            {metric.value}
+          </p>
+
+          <p className="text-xs mt-2 opacity-80">
+            {metric.trend > 0
+              ? `+${metric.trend}% em relação ao mês anterior`
+              : metric.trend < 0
+                ? `${metric.trend}% em relação ao mês anterior`
+                : "Sem variação registrada"}
+          </p>
+        </article>
       ))}
     </section>
   );
-};
-
-export default MetricsGrid;
+}

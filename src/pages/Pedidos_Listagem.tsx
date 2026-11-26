@@ -4,52 +4,43 @@ import Sidebar from '../components/organisms/Sidebar';
 import PageHeader from '../components/molecules/PageHeader';
 import SearchInput from '../components/atoms/SearchInput';
 import PedidoTable from '../components/organisms/PedidoTable';
-import { Pedido, PedidoEnvioStatus, PedidoCompraStatus } from '../types/order';
+import { Pedido } from '../types/order';
+import { pedidosService } from '../services/pedidos.service';
+import { usePedidos } from '@/hooks/usePedidos';
+import { notifyOrderUpdate } from '../utils/orderSync';
 
-export interface PedidoFormData extends Omit<Pedido, 'valorTotal'> {
+export interface PedidoFormData extends Omit<Pedido, 'valorTotal' | 'subtotal' | 'frete'> {
   valorTotal: number | string;
+  subtotal?: number | string;
+  frete?: number | string;
+  cliente?: string;
+  enderecoTexto?: string;
+  status: string;
 }
 
 export default function Pedidos_Listagem(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<number | string | null>(null);
+  const [editLoading, setEditLoading] = useState<boolean>(false);
+  const [saving, setSaving] = useState<boolean>(false);
 
-  // MOCK utilizando asserção de tipo (as ItemPedido[]) para evitar inconsistências com Product
-  const [pedidos, setPedidos] = useState<Pedido[]>([
-    {
-      id: 1001,
-      valorTotal: 599.9,
-      statusEnvio: 'Entregue',
-      statusCompra: 'Aprovado',
-      dataPedido: '2026-08-12T14:32:00',
-      usuarioId: 12,
-      enderecoId: 8,
-      produtos_do_pedido: [
-        {
-          produto: { 
-            id: 1, 
-            nome: 'Atalaia Combat', 
-            nome_produto: 'Atalaia Combat',
-            categoria: 'Coturno', 
-            categoria_produto: 'Coturno',
-            preco: 599.9, 
-            preco_produto: 599.9,
-            estoque: 45, 
-            quantidade_estoque: 45,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 599.9,
-        },
-      ],
-    },
-   
-  ]);
+  // Hook para obter a lista real de pedidos
+  const {
+    pedidos,
+    loading,
+    error,
+    refetch,
+  } = usePedidos(1, 20, { busca: '' });
 
   const [formData, setFormData] = useState<PedidoFormData>({
     id: '',
     valorTotal: '',
+    subtotal: '',
+    frete: '',
+    cliente: '',
+    enderecoTexto: '',
+    status: 'pending',
     statusCompra: 'Pendente',
     statusEnvio: 'Pendente',
     dataPedido: '',
@@ -58,21 +49,123 @@ export default function Pedidos_Listagem(): React.JSX.Element {
     produtos_do_pedido: [],
   });
 
-  const handleEdit = (id: string | number): void => {
-    const pedido = pedidos.find((p) => String(p.id) === String(id));
-    if (pedido) {
-      setFormData({
-        id: pedido.id,
-        valorTotal: pedido.valorTotal,
-        statusCompra: pedido.statusCompra,
-        statusEnvio: pedido.statusEnvio,
-        dataPedido: pedido.dataPedido,
-        usuarioId: pedido.usuarioId,
-        enderecoId: pedido.enderecoId,
-        produtos_do_pedido: pedido.produtos_do_pedido || [],
-      });
-      setEditingId(pedido.id);
-      setIsEditing(true);
+  const handleEdit = async (id: string | number): Promise<void> => {
+    setEditingId(id);
+    setEditLoading(true);
+    try {
+      // Tenta buscar pelo endpoint específico de detalhes
+      const pedido: any = await pedidosService.buscar(id);
+      const local: any = pedidos.find((p) => String(p.id) === String(id));
+      const source = pedido || local;
+
+      if (source) {
+        const itens = source.produtos_do_pedido || source.items || [];
+
+        // Calcular subtotal baseado na soma dos itens do pedido
+        const calcSubtotal = itens.reduce((acc: number, item: any) => {
+          const preco = Number(
+            item.precoUnitario ??
+            item.unitPrice ??
+            item.unit_price ??
+            item.produto?.preco ??
+            item.produto?.preco_produto ??
+            0
+          );
+          const qtd = Number(item.quantidade ?? item.quantity ?? 1);
+          return acc + (preco * qtd);
+        }, 0);
+
+        const valorTotal = Number(source.valorTotal ?? source.totalAmount ?? source.total_amount ?? 0);
+        const freteRecebido = Number(source.frete ?? source.shippingFee ?? source.shipping_fee ?? 0);
+        const subtotal = Number(source.subtotal ?? (calcSubtotal > 0 ? calcSubtotal : valorTotal));
+        const frete = freteRecebido > 0 ? freteRecebido : (valorTotal > subtotal ? valorTotal - subtotal : 0);
+
+        // Nome do cliente
+        const clienteNome =
+          source.cliente ||
+          local?.cliente ||
+          (source.user ? `${source.user.first_name || ''} ${source.user.last_name || ''}`.trim() : '') ||
+          `Cliente #${source.usuarioId || source.user_id || ''}`;
+
+        // Endereço formatado completo
+        const end = source.endereco || local?.endereco;
+        let enderecoFormatado = '';
+        if (typeof end === 'string') {
+          enderecoFormatado = end;
+        } else if (end?.texto) {
+          enderecoFormatado = end.texto;
+        } else if (end?.logradouro) {
+          const partes = [
+            `${end.logradouro}${end.numero ? `, ${end.numero}` : ''}`,
+            end.complemento ? `(${end.complemento})` : '',
+            end.bairro ? `- ${end.bairro}` : '',
+            end.cidade && end.estado ? `- ${end.cidade}/${end.estado}` : (end.cidade || ''),
+            end.cep ? `- CEP: ${end.cep}` : '',
+          ].filter(Boolean);
+          enderecoFormatado = partes.join(' ');
+        } else if (source.shipping_street) {
+          enderecoFormatado = `${source.shipping_street}, ${source.shipping_number || 'S/N'}${source.shipping_complement ? ` (${source.shipping_complement})` : ''} - ${source.shipping_neighborhood || ''}, ${source.shipping_city || ''}/${source.shipping_state || ''} - CEP: ${source.shipping_zip_code || ''}`;
+        } else {
+          enderecoFormatado = 'Endereço não informado';
+        }
+
+        const rawStatus = source.status || (source.statusEnvio === 'Enviado' ? 'shipped' : source.statusEnvio === 'Entregue' ? 'delivered' : source.statusEnvio === 'Cancelado' ? 'cancelled' : source.statusEnvio === 'Em Separação' ? 'preparing' : source.statusEnvio === 'Pago' ? 'paid' : 'pending');
+
+        setFormData({
+          id: source.id,
+          valorTotal,
+          subtotal,
+          frete,
+          cliente: clienteNome,
+          enderecoTexto: enderecoFormatado,
+          endereco: typeof end === 'object' ? end : undefined,
+          status: rawStatus,
+          statusCompra: source.statusCompra || 'Pendente',
+          statusEnvio: source.statusEnvio || 'Pendente',
+          dataPedido: source.dataPedido || source.orderDate || source.created_at || '',
+          usuarioId: source.usuarioId || source.user_id || '',
+          enderecoId: source.enderecoId || source.address_id || '',
+          produtos_do_pedido: itens,
+        });
+        setIsEditing(true);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar detalhes do pedido via API, tentando da lista local:', e);
+      // Fallback: se a rota individual falhar, usa os dados já carregados na lista
+      const local: any = pedidos.find((p) => String(p.id) === String(id));
+      if (local) {
+        const itens = local.produtos_do_pedido || [];
+        const calcSubtotal = itens.reduce((acc: number, item: any) => {
+          const preco = Number(item.precoUnitario ?? item.unitPrice ?? item.produto?.preco ?? 0);
+          const qtd = Number(item.quantidade ?? 1);
+          return acc + (preco * qtd);
+        }, 0);
+        const valorTotal = Number(local.valorTotal || 0);
+        const frete = Number(local.frete ?? local.shippingFee ?? 0);
+        const subtotal = Number(local.subtotal ?? (calcSubtotal > 0 ? calcSubtotal : valorTotal));
+        const freteFinal = frete > 0 ? frete : (valorTotal > subtotal ? valorTotal - subtotal : 0);
+        const rawStatus = local.status || (local.statusEnvio === 'Enviado' ? 'shipped' : local.statusEnvio === 'Entregue' ? 'delivered' : local.statusEnvio === 'Cancelado' ? 'cancelled' : local.statusEnvio === 'Em Separação' ? 'preparing' : local.statusEnvio === 'Pago' ? 'paid' : 'pending');
+
+        setFormData({
+          id: local.id,
+          valorTotal,
+          subtotal,
+          frete: freteFinal,
+          cliente: local.cliente || `Cliente #${local.usuarioId}`,
+          enderecoTexto: local.endereco?.texto || local.endereco?.logradouro || 'Endereço não informado',
+          endereco: local.endereco,
+          status: rawStatus,
+          statusCompra: local.statusCompra,
+          statusEnvio: local.statusEnvio,
+          dataPedido: local.dataPedido,
+          usuarioId: local.usuarioId,
+          enderecoId: local.enderecoId,
+          produtos_do_pedido: itens,
+        });
+        setIsEditing(true);
+      }
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -81,30 +174,51 @@ export default function Pedidos_Listagem(): React.JSX.Element {
     setEditingId(null);
   };
 
-  const handleFormSubmit = (e: FormEvent<HTMLFormElement>): void => {
+  const handleFormSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     if (editingId !== null) {
-      setPedidos((prevPedidos) =>
-        prevPedidos.map((p) =>
-          String(p.id) === String(editingId) ? { ...p, status: formData.statusEnvio } : p
-        )
-      );
+      setSaving(true);
+      try {
+        const updated: any = await pedidosService.atualizarStatus(editingId, formData.status);
+        const orderNumber = updated?.order_number || updated?.orderNumber || (formData as any)?.orderNumber;
+        notifyOrderUpdate({ orderId: editingId, status: formData.status });
+        if (orderNumber) {
+          notifyOrderUpdate({ orderId: orderNumber, status: formData.status });
+        }
+        await refetch();
+      } catch (e: any) {
+        console.error('Erro ao atualizar status', e);
+        if (e?.response?.status === 401) {
+          alert('Sua sessão de administrador expirou. Por favor, faça login novamente.');
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_token_expires_at');
+          window.location.href = '/login?session_expired=1';
+        } else {
+          alert(e?.response?.data?.message || e?.message || 'Erro ao atualizar status do pedido.');
+        }
+      } finally {
+        setSaving(false);
+      }
     }
     handleCloseForm();
   };
 
-  const handleDelete = (id: string | number): void => {
-    setPedidos((prev) =>
-      prev.map((p) => (String(p.id) === String(id) ? { ...p, statusEnvio: 'Cancelado' } : p))
-    );
+  const handleDelete = async (id: string | number): Promise<void> => {
+    try {
+      await pedidosService.cancelar(id);
+      await refetch();
+    } catch (e) {
+      console.error('Erro ao cancelar pedido', e);
+    }
   };
 
   const filteredPedidos = pedidos.filter((pedido) => {
     const term = searchTerm.toLowerCase();
     return (
       String(pedido.id).toLowerCase().includes(term) ||
-      pedido.statusEnvio.toLowerCase().includes(term) ||
-      pedido.statusCompra.toLowerCase().includes(term) ||
+      (pedido.statusEnvio && pedido.statusEnvio.toLowerCase().includes(term)) ||
+      (pedido.statusCompra && pedido.statusCompra.toLowerCase().includes(term)) ||
+      (pedido.cliente && pedido.cliente.toLowerCase().includes(term)) ||
       String(pedido.usuarioId).toLowerCase().includes(term)
     );
   });
@@ -120,233 +234,340 @@ export default function Pedidos_Listagem(): React.JSX.Element {
             hideButton={true}
           />
 
-          {isEditing ? (
-            <div className="w-full bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
-              <h2 className="text-xl font-bold text-slate-900">
-                Detalhes do Pedido #{formData.id}
-              </h2>
-
-              <form onSubmit={handleFormSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {/* ID do Pedido */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      ID do Pedido
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={formData.id}
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
+          {/* Modal / Formulário de edição flutuante / pop-up */}
+          {isEditing && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+              <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col overflow-hidden">
+                {/* Cabeçalho do Modal */}
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Detalhes do Pedido #{formData.id}
+                    </h2>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Atualize o status de entrega e visualize os itens do pedido
+                    </p>
                   </div>
-
-                  {/* ID do Cliente */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      ID do Cliente
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={formData.usuarioId}
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-
-                  {/* ID do Endereço */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      ID do Endereço de Entrega
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={formData.enderecoId}
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Data do Pedido */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      Data e Hora do Pedido
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={
-                        formData.dataPedido
-                          ? new Date(formData.dataPedido).toLocaleString('pt-BR')
-                          : ''
-                      }
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Valor Total */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      Valor Total (R$)
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={
-                        typeof formData.valorTotal === 'number'
-                          ? `R$ ${formData.valorTotal.toFixed(2).replace('.', ',')}`
-                          : formData.valorTotal
-                      }
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-                  
-                  {/* Status da Compra */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-900">
-                      Status da Compra
-                    </label>
-                    <select
-                      className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 text-slate-900 bg-slate-100 font-medium"
-                      disabled
-                      value={formData.statusCompra}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          statusCompra: e.target.value as PedidoCompraStatus,
-                        })
-                      }
-                      required
-                    >
-                      <option value="Pendente">Pendente</option>
-                      <option value="Aprovado">Aprovado</option>
-                      <option value="Processando">Processando</option>
-                      <option value="Recusado">Recusado</option>
-                      <option value="Reembolsado">Reembolsado</option>
-                      <option value="Em_contestação">Em_contestação</option>
-                      <option value="Cancelado">Cancelado</option>
-                      
-                    </select>
-                  </div>
-                </div>
-
-        
-                {/* Status de Envio*/}
-                <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-900">
-                      <strong>Status do Envio</strong>
-                    </label>
-                    <select
-                      className="p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 bg-white font-medium"
-                      value={formData.statusEnvio}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          statusEnvio: e.target.value as PedidoEnvioStatus,
-                        })
-                      }
-                      required
-                    >
-                      <option value="Pendente">Pendente</option>
-                      <option value="Enviado">Enviado</option>
-                      <option value="Entregue">Entregue</option>
-                      <option value="Cancelado">Cancelado</option>
-                    </select>
-                </div>
-
-                {/* Exibição dos Produtos do Pedido */}
-                <div className="space-y-3 pt-2">
-                  <h3 className="text-md font-semibold text-slate-800 border-b border-slate-100 pb-2">
-                    Produtos no Pedido
-                  </h3>
-                  <div className="overflow-x-auto rounded-lg border border-slate-200">
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                      <thead className="bg-slate-50 text-slate-600 font-medium">
-                        <tr>
-                          <th className="px-4 py-2.5 text-left">Produto</th>
-                          <th className="px-4 py-2.5 text-left">Categoria</th>
-                          <th className="px-4 py-2.5 text-center">Quantidade</th>
-                          <th className="px-4 py-2.5 text-right">Preço Unitário</th>
-                          <th className="px-4 py-2.5 text-right">Subtotal</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
-                        {formData.produtos_do_pedido && formData.produtos_do_pedido.length > 0 ? (
-                          (formData.produtos_do_pedido as any[]).map((item, index) => {
-                            const prod = item.produto || {};
-                            const nome = prod.nome_produto || prod.nome || 'Produto Sem Nome';
-                            const categoria = prod.categoria_produto || prod.categoria || 'Geral';
-                            const precoBase = prod.preco_produto ?? prod.preco ?? 0;
-                            const preco = item.precoUnitario ?? precoBase;
-                            const subtotal = preco * (item.quantidade || 1);
-
-                            return (
-                              <tr key={index} className="hover:bg-slate-50/50">
-                                <td className="px-4 py-2.5 font-medium text-slate-900">
-                                  {nome}
-                                </td>
-                                <td className="px-4 py-2.5 text-slate-500">
-                                  {categoria}
-                                </td>
-                                <td className="px-4 py-2.5 text-center font-medium">
-                                  {item.quantidade}
-                                </td>
-                                <td className="px-4 py-2.5 text-right">
-                                  R$ {Number(preco).toFixed(2).replace('.', ',')}
-                                </td>
-                                <td className="px-4 py-2.5 text-right font-medium text-slate-900">
-                                  R$ {Number(subtotal).toFixed(2).replace('.', ',')}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan={5} className="px-4 py-3 text-center text-slate-400 italic">
-                              Nenhum produto atrelado a este pedido.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Botões de Ação */}
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm"
-                  >
-                    Salvar Alterações
-                  </button>
                   <button
                     type="button"
                     onClick={handleCloseForm}
-                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors"
+                    className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 transition-colors"
                   >
-                    Cancelar
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
-              </form>
-            </div>
-          ) : (
-            <>
-              <div className="w-full bg-white rounded-xl mb-5 mt-7">
-                <SearchInput
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por pedido, cliente ou status..."
-                />
-              </div>
 
-              <PedidoTable
-                pedidos={filteredPedidos}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            </>
+                {/* Conteúdo do Modal */}
+                <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+                  {/* Grade Completa: Pedido, Cliente, Endereço, Frete e Valores */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {/* ID do Pedido */}
+                    <div className="flex flex-col space-y-1 lg:col-span-2">
+                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        ID do Pedido
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={formData.id}
+                        className="p-2.5 text-sm border border-slate-200 rounded-lg bg-slate-100 text-slate-600 cursor-not-allowed font-mono"
+                      />
+                    </div>
+
+                    {/* Nome do Cliente */}
+                    <div className="flex flex-col space-y-1 lg:col-span-2">
+                      <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>Nome do Cliente</span>
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={formData.cliente || 'Cliente não identificado'}
+                        className="p-2.5 text-sm border border-slate-200 rounded-lg bg-slate-100 text-slate-900 font-semibold cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Status Geral do Pedido (Unificado e Sincronizado) */}
+                    <div className="flex flex-col space-y-1 lg:col-span-2">
+                      <label className="text-xs font-semibold text-indigo-700 uppercase tracking-wider flex items-center justify-between">
+                        <span>Status do Pedido</span>
+                        <span className="text-[10px] text-indigo-600 font-normal lowercase">sincroniza cliente</span>
+                      </label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormData({
+                            ...formData,
+                            status: val,
+                            statusEnvio: val === 'shipped' ? 'Enviado' : val === 'delivered' ? 'Entregue' : val === 'preparing' ? 'Em Separação' : val === 'paid' ? 'Pago' : val === 'cancelled' ? 'Cancelado' : 'Pendente',
+                            statusCompra: val === 'pending' ? 'Pendente' : val === 'cancelled' ? 'Cancelado' : 'Aprovado',
+                          });
+                        }}
+                        className="p-2.5 text-sm border-2 border-indigo-500 bg-indigo-50/50 text-indigo-950 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 cursor-pointer shadow-xs"
+                      >
+                        <option value="pending">⏳ Aguardando Pagamento (Pendente)</option>
+                        <option value="paid">💳 Pagamento Aprovado (Pago)</option>
+                        <option value="preparing">📦 Em Separação Logística</option>
+                        <option value="shipped">🚚 Enviado / Em Trânsito</option>
+                        <option value="delivered">✅ Entregue no Destino</option>
+                        <option value="cancelled">❌ Cancelado</option>
+                      </select>
+                    </div>
+
+                    {/* Endereço Completo de Entrega */}
+                    <div className="flex flex-col space-y-1 sm:col-span-2 md:col-span-3 lg:col-span-6">
+                      <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Endereço de Entrega</span>
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={formData.enderecoTexto || 'Endereço não informado'}
+                        className="p-2.5 text-sm border border-slate-200 rounded-lg bg-slate-100 text-slate-800 cursor-not-allowed font-medium"
+                      />
+                    </div>
+
+                    {/* Subtotal dos Itens */}
+                    <div className="flex flex-col space-y-1 lg:col-span-2">
+                      <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                        Subtotal (Itens)
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={Number(formData.subtotal || 0).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                        className="p-2.5 text-sm border border-slate-200 rounded-lg bg-slate-100 text-slate-800 font-medium cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Valor do Frete */}
+                    <div className="flex flex-col space-y-1 lg:col-span-2">
+                      <label className="text-xs font-semibold text-indigo-700 uppercase tracking-wider flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1m-6 0a1 1 0 102 0m-2 0a1 1 0 112 0m8 0a1 1 0 102 0m-2 0a1 1 0 112 0" />
+                          </svg>
+                          Valor do Frete
+                        </span>
+                        <span className="text-[10px] text-indigo-600 font-semibold lowercase">incluso</span>
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={Number(formData.frete || 0).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                        className="p-2.5 text-sm border border-indigo-200 bg-indigo-50/60 text-indigo-900 font-semibold cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Valor Total */}
+                    <div className="flex flex-col space-y-1 lg:col-span-2">
+                      <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                        <span>Valor Total</span>
+                        <span className="text-[10px] text-slate-500 font-normal">subtotal + frete</span>
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value={Number(formData.valorTotal || 0).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                        className="p-2.5 text-sm border-2 border-slate-300 rounded-lg bg-slate-100 text-slate-950 font-bold cursor-not-allowed text-base"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Exibição dos Produtos do Pedido */}
+                  <div className="space-y-3 pt-2">
+                    <h3 className="text-sm font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center justify-between">
+                      <span>Produtos no Pedido</span>
+                      <span className="text-xs font-normal text-slate-500">
+                        {formData.produtos_do_pedido?.length || 0} item(ns)
+                      </span>
+                    </h3>
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+                      <table className="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead className="bg-slate-50 text-slate-600 font-semibold text-xs uppercase tracking-wider">
+                          <tr>
+                            <th className="px-4 py-3 text-left">Produto</th>
+                            <th className="px-4 py-3 text-left">Categoria</th>
+                            <th className="px-4 py-3 text-center">Quantidade</th>
+                            <th className="px-4 py-3 text-right">Preço Unitário</th>
+                            <th className="px-4 py-3 text-right">Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
+                          {formData.produtos_do_pedido && formData.produtos_do_pedido.length > 0 ? (
+                            (formData.produtos_do_pedido as any[]).map((item, index) => {
+                              const prod = item.produto || {};
+                              const nome = prod.nome_produto || prod.nome || prod.model || 'Produto';
+                              const categoria = prod.categoria_produto || prod.categoria || 'Geral';
+                              const precoBase = prod.preco_produto ?? prod.preco ?? 0;
+                              const preco = item.precoUnitario ?? item.unitPrice ?? item.unit_price ?? precoBase;
+                              const subtotal = preco * (item.quantidade || item.quantity || 1);
+
+                              return (
+                                <tr key={index} className="hover:bg-slate-50/50">
+                                  <td className="px-4 py-3 font-medium text-slate-900">{nome}</td>
+                                  <td className="px-4 py-3 text-slate-500">{categoria}</td>
+                                  <td className="px-4 py-3 text-center font-medium">
+                                    {item.quantidade || item.quantity || 1}
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    {Number(preco).toLocaleString('pt-BR', {
+                                      style: 'currency',
+                                      currency: 'BRL',
+                                    })}
+                                  </td>
+                                  <td className="px-4 py-3 text-right font-medium text-slate-900">
+                                    {Number(subtotal).toLocaleString('pt-BR', {
+                                      style: 'currency',
+                                      currency: 'BRL',
+                                    })}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          ) : (
+                            <tr>
+                              <td colSpan={5} className="px-4 py-6 text-center text-slate-400 italic">
+                                Nenhum produto atrelado a este pedido.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Resumo Financeiro Visual (Subtotal + Frete = Total) */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-3 shadow-2xs">
+                      <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                        <svg className="w-4 h-4 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>A diferença entre o subtotal dos produtos e o valor total refere-se ao custo de frete.</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-5 justify-end">
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-slate-500 font-medium">Subtotal dos Itens</span>
+                          <span className="text-sm font-semibold text-slate-800">
+                            {Number(formData.subtotal || 0).toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            })}
+                          </span>
+                        </div>
+                        <div className="text-slate-400 font-bold text-sm">+</div>
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-indigo-600 font-medium">
+                            Frete
+                          </span>
+                          <span className="text-sm font-semibold text-indigo-600">
+                            {Number(formData.frete || 0).toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            })}
+                          </span>
+                        </div>
+                        <div className="text-slate-400 font-bold text-sm">=</div>
+                        <div className="flex flex-col items-end bg-white px-3.5 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
+                          <span className="text-xs text-slate-500 font-medium">Valor Total</span>
+                          <span className="text-base font-bold text-slate-900">
+                            {Number(formData.valorTotal || 0).toLocaleString('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rodapé do Modal */}
+                  <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={handleCloseForm}
+                      className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition-colors"
+                    >
+                      Cancelar
+                    </button>
+      <button
+        type="submit"
+        disabled={saving}
+        className={`px-5 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        {saving ? 'Atualizando...' : 'Salvar Alterações'}
+      </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           )}
+
+          {/* Busca */}
+          <div className="flex justify-between items-center mb-4">
+            <SearchInput
+              placeholder="Buscar por número, cliente ou status"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Estados de carregamento / erro */}
+          {loading && <p className="text-center text-gray-600 py-4">Carregando pedidos…</p>}
+          {error && (
+            <div className="p-4 my-2 bg-red-50 border border-red-200 rounded-xl text-center space-y-2">
+              <p className="text-sm font-semibold text-red-700">
+                {String(error).includes('401')
+                  ? 'Sua sessão administrativa expirou (401). Faça login novamente para continuar.'
+                  : error}
+              </p>
+              {String(error).includes('401') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem('admin_token');
+                    localStorage.removeItem('admin_token_expires_at');
+                    window.location.href = '/login?session_expired=1';
+                  }}
+                  className="px-4 py-1.5 bg-red-600 text-white rounded text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  Fazer Login Novamente
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Tabela de Pedidos */}
+          {!loading && filteredPedidos.length > 0 && (
+            <PedidoTable
+              pedidos={filteredPedidos}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              editingId={editingId}
+              editLoading={editLoading}
+            />
+          )}
+
+          {/* Paginação */}
+
         </div>
       </main>
     </div>

@@ -12,6 +12,7 @@ export type PedidoCompraStatus =
 
 export type PedidoEnvioStatus =
   | 'Pendente'
+  | 'Em Separação'
   | 'Enviado'
   | 'Entregue'
   | 'Cancelado';
@@ -24,12 +25,28 @@ export interface ItemPedido {
 
 export interface Pedido {
   id: string | number;
+  status: string;
   valorTotal: number;
+  subtotal?: number;
+  frete?: number;
+  shippingFee?: number;
   statusCompra: PedidoCompraStatus;
-  statusEnvio: PedidoEnvioStatus;
+  statusEnvio: PedidoEnvioStatus | string;
   dataPedido: string;
   usuarioId: string | number;
   enderecoId: string | number;
+  cliente?: string;
+  /** Endereço formatado */
+  endereco?: {
+    logradouro?: string;
+    numero?: string;
+    complemento?: string;
+    bairro?: string;
+    cidade?: string;
+    estado?: string;
+    cep?: string;
+    texto?: string;
+  };
   produtos_do_pedido: ItemPedido[];
 }
 
