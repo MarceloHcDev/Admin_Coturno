@@ -30,6 +30,14 @@ export interface Pedido {
   dataPedido: string;
   usuarioId: string | number;
   enderecoId: string | number;
+  cliente?: string;
+  /** Endereço formatado */
+  endereco?: {
+    logradouro?: string;
+    cidade?: string;
+    estado?: string;
+    cep?: string;
+  };
   produtos_do_pedido: ItemPedido[];
 }
 

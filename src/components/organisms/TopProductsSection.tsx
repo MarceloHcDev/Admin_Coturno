@@ -26,7 +26,6 @@ export function TopProductsSection({
               <th className="pb-3">Produto</th>
               <th className="pb-3">Vendas</th>
               <th className="pb-3">Receita estimada</th>
-              <th className="pb-3">Avaliação</th>
             </tr>
           </thead>
 
@@ -57,10 +56,6 @@ export function TopProductsSection({
 
                   <td className="py-4 font-medium text-slate-700">
                     {produto.revenue}
-                  </td>
-
-                  <td className="py-4 text-slate-600">
-                    ★ {produto.rating.toFixed(1)}
                   </td>
                 </tr>
               ))

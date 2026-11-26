@@ -55,9 +55,13 @@ export const PedidoTable: React.FC<PedidoTableProps> = ({
                 Cliente #{pedido.usuarioId}
               </td>
 
+              <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
+                {pedido.cliente || `Cliente #${pedido.usuarioId}`}
+              </td>
+
               {/* Endereço de Entrega (endereco_id) */}
               <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
-                Endereço #{pedido.enderecoId}
+                {pedido.endereco?.logradouro ?? `Endereço #${pedido.enderecoId}`}
               </td>
 
               {/* Valor Total */}

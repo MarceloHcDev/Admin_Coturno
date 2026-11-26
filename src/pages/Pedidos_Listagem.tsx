@@ -4,7 +4,10 @@ import Sidebar from '../components/organisms/Sidebar';
 import PageHeader from '../components/molecules/PageHeader';
 import SearchInput from '../components/atoms/SearchInput';
 import PedidoTable from '../components/organisms/PedidoTable';
-import { Pedido, PedidoEnvioStatus, PedidoCompraStatus } from '../types/order';
+import { Pedido, PedidoEnvioStatus, PedidoFilters } from '../types/order';
+import { pedidosService } from '../services/pedidos.service';
+import { Pagination } from '../components/atoms/Pagination';
+import { usePedidos } from '@/hooks/usePedidos';
 
 export interface PedidoFormData extends Omit<Pedido, 'valorTotal'> {
   valorTotal: number | string;
@@ -15,37 +18,18 @@ export default function Pedidos_Listagem(): React.JSX.Element {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<number | string | null>(null);
 
-  // MOCK utilizando asserção de tipo (as ItemPedido[]) para evitar inconsistências com Product
-  const [pedidos, setPedidos] = useState<Pedido[]>([
-    {
-      id: 1001,
-      valorTotal: 599.9,
-      statusEnvio: 'Entregue',
-      statusCompra: 'Aprovado',
-      dataPedido: '2026-08-12T14:32:00',
-      usuarioId: 12,
-      enderecoId: 8,
-      produtos_do_pedido: [
-        {
-          produto: { 
-            id: 1, 
-            nome: 'Atalaia Combat', 
-            nome_produto: 'Atalaia Combat',
-            categoria: 'Coturno', 
-            categoria_produto: 'Coturno',
-            preco: 599.9, 
-            preco_produto: 599.9,
-            estoque: 45, 
-            quantidade_estoque: 45,
-            status: 'Em Estoque' 
-          } as any,
-          quantidade: 1,
-          precoUnitario: 599.9,
-        },
-      ],
-    },
-   
-  ]);
+  // Hook para obter a lista real de pedidos
+  const {
+    pedidos,
+    loading,
+    error,
+    refetch,
+    page,
+    setPage,
+    filters,
+    setFilters,
+    totalPages,
+  } = usePedidos(1, 20, { busca: '' });
 
   const [formData, setFormData] = useState<PedidoFormData>({
     id: '',
@@ -58,9 +42,9 @@ export default function Pedidos_Listagem(): React.JSX.Element {
     produtos_do_pedido: [],
   });
 
-  const handleEdit = (id: string | number): void => {
-    const pedido = pedidos.find((p) => String(p.id) === String(id));
-    if (pedido) {
+  const handleEdit = async (id: string | number): Promise<void> => {
+    try {
+      const pedido = await pedidosService.buscar(id);
       setFormData({
         id: pedido.id,
         valorTotal: pedido.valorTotal,
@@ -69,10 +53,12 @@ export default function Pedidos_Listagem(): React.JSX.Element {
         dataPedido: pedido.dataPedido,
         usuarioId: pedido.usuarioId,
         enderecoId: pedido.enderecoId,
-        produtos_do_pedido: pedido.produtos_do_pedido || [],
+        produtos_do_pedido: pedido.produtos_do_pedido,
       });
       setEditingId(pedido.id);
       setIsEditing(true);
+    } catch (e) {
+      console.error('Erro ao buscar pedido', e);
     }
   };
 
@@ -81,22 +67,26 @@ export default function Pedidos_Listagem(): React.JSX.Element {
     setEditingId(null);
   };
 
-  const handleFormSubmit = (e: FormEvent<HTMLFormElement>): void => {
+  const handleFormSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     if (editingId !== null) {
-      setPedidos((prevPedidos) =>
-        prevPedidos.map((p) =>
-          String(p.id) === String(editingId) ? { ...p, status: formData.statusEnvio } : p
-        )
-      );
+      try {
+        await pedidosService.atualizarStatus(editingId, formData.statusEnvio);
+        await refetch();
+      } catch (e) {
+        console.error('Erro ao atualizar status', e);
+      }
     }
     handleCloseForm();
   };
 
-  const handleDelete = (id: string | number): void => {
-    setPedidos((prev) =>
-      prev.map((p) => (String(p.id) === String(id) ? { ...p, statusEnvio: 'Cancelado' } : p))
-    );
+  const handleDelete = async (id: string | number): Promise<void> => {
+    try {
+      await pedidosService.cancelar(id);
+      await refetch();
+    } catch (e) {
+      console.error('Erro ao cancelar pedido', e);
+    }
   };
 
   const filteredPedidos = pedidos.filter((pedido) => {
@@ -120,232 +110,70 @@ export default function Pedidos_Listagem(): React.JSX.Element {
             hideButton={true}
           />
 
-          {isEditing ? (
+          {/* Busca */}
+          <div className="flex justify-between items-center mb-4">
+            <SearchInput
+              placeholder="Buscar por número, cliente ou status"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          {/* Estados de carregamento / erro */}
+          {loading && <p className="text-center text-gray-600">Carregando pedidos…</p>}
+          {error && <p className="text-center text-red-600">{error}</p>}
+
+          {/* Paginação */}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={(newPage) => setPage(newPage)}
+          />
+
+          {/* Tabela de Pedidos */}
+          {filteredPedidos.length > 0 && (
+            <PedidoTable
+              pedidos={filteredPedidos}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          )}
+
+          {/* Formulário de edição */}
+          {isEditing && (
             <div className="w-full bg-white p-6 rounded-xl border border-slate-100 shadow-sm space-y-6">
-              <h2 className="text-xl font-bold text-slate-900">
-                Detalhes do Pedido #{formData.id}
-              </h2>
+              <h2 className="text-xl font-bold text-slate-900">Detalhes do Pedido #{formData.id}</h2>
 
               <form onSubmit={handleFormSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {/* ID do Pedido */}
                   <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      ID do Pedido
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={formData.id}
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
+                    <label className="text-sm font-medium text-slate-600">ID do Pedido</label>
+                    <input type="text" disabled value={formData.id} className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed" />
                   </div>
 
-                  {/* ID do Cliente */}
+                  {/* Status de Envio (editável) */}
                   <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      ID do Cliente
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={formData.usuarioId}
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-
-                  {/* ID do Endereço */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      ID do Endereço de Entrega
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={formData.enderecoId}
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Data do Pedido */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      Data e Hora do Pedido
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={
-                        formData.dataPedido
-                          ? new Date(formData.dataPedido).toLocaleString('pt-BR')
-                          : ''
-                      }
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Valor Total */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-600">
-                      Valor Total (R$)
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={
-                        typeof formData.valorTotal === 'number'
-                          ? `R$ ${formData.valorTotal.toFixed(2).replace('.', ',')}`
-                          : formData.valorTotal
-                      }
-                      className="p-2 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-                  
-                  {/* Status da Compra */}
-                  <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-900">
-                      Status da Compra
-                    </label>
+                    <label className="text-sm font-medium text-slate-600">Status de Envio</label>
                     <select
-                      className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 text-slate-900 bg-slate-100 font-medium"
-                      disabled
-                      value={formData.statusCompra}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          statusCompra: e.target.value as PedidoCompraStatus,
-                        })
-                      }
-                      required
-                    >
-                      <option value="Pendente">Pendente</option>
-                      <option value="Aprovado">Aprovado</option>
-                      <option value="Processando">Processando</option>
-                      <option value="Recusado">Recusado</option>
-                      <option value="Reembolsado">Reembolsado</option>
-                      <option value="Em_contestação">Em_contestação</option>
-                      <option value="Cancelado">Cancelado</option>
-                      
-                    </select>
-                  </div>
-                </div>
-
-        
-                {/* Status de Envio*/}
-                <div className="flex flex-col space-y-1">
-                    <label className="text-sm font-medium text-slate-900">
-                      <strong>Status do Envio</strong>
-                    </label>
-                    <select
-                      className="p-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-900 bg-white font-medium"
                       value={formData.statusEnvio}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          statusEnvio: e.target.value as PedidoEnvioStatus,
-                        })
-                      }
-                      required
+                      onChange={(e) => setFormData({ ...formData, statusEnvio: e.target.value as PedidoEnvioStatus })}
+                      className="p-2 border border-slate-200 rounded-lg"
                     >
                       <option value="Pendente">Pendente</option>
                       <option value="Enviado">Enviado</option>
                       <option value="Entregue">Entregue</option>
                       <option value="Cancelado">Cancelado</option>
                     </select>
-                </div>
-
-                {/* Exibição dos Produtos do Pedido */}
-                <div className="space-y-3 pt-2">
-                  <h3 className="text-md font-semibold text-slate-800 border-b border-slate-100 pb-2">
-                    Produtos no Pedido
-                  </h3>
-                  <div className="overflow-x-auto rounded-lg border border-slate-200">
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                      <thead className="bg-slate-50 text-slate-600 font-medium">
-                        <tr>
-                          <th className="px-4 py-2.5 text-left">Produto</th>
-                          <th className="px-4 py-2.5 text-left">Categoria</th>
-                          <th className="px-4 py-2.5 text-center">Quantidade</th>
-                          <th className="px-4 py-2.5 text-right">Preço Unitário</th>
-                          <th className="px-4 py-2.5 text-right">Subtotal</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
-                        {formData.produtos_do_pedido && formData.produtos_do_pedido.length > 0 ? (
-                          (formData.produtos_do_pedido as any[]).map((item, index) => {
-                            const prod = item.produto || {};
-                            const nome = prod.nome_produto || prod.nome || 'Produto Sem Nome';
-                            const categoria = prod.categoria_produto || prod.categoria || 'Geral';
-                            const precoBase = prod.preco_produto ?? prod.preco ?? 0;
-                            const preco = item.precoUnitario ?? precoBase;
-                            const subtotal = preco * (item.quantidade || 1);
-
-                            return (
-                              <tr key={index} className="hover:bg-slate-50/50">
-                                <td className="px-4 py-2.5 font-medium text-slate-900">
-                                  {nome}
-                                </td>
-                                <td className="px-4 py-2.5 text-slate-500">
-                                  {categoria}
-                                </td>
-                                <td className="px-4 py-2.5 text-center font-medium">
-                                  {item.quantidade}
-                                </td>
-                                <td className="px-4 py-2.5 text-right">
-                                  R$ {Number(preco).toFixed(2).replace('.', ',')}
-                                </td>
-                                <td className="px-4 py-2.5 text-right font-medium text-slate-900">
-                                  R$ {Number(subtotal).toFixed(2).replace('.', ',')}
-                                </td>
-                              </tr>
-                            );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan={5} className="px-4 py-3 text-center text-slate-400 italic">
-                              Nenhum produto atrelado a este pedido.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
                   </div>
                 </div>
 
-                {/* Botões de Ação */}
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm"
-                  >
-                    Salvar Alterações
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCloseForm}
-                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition-colors"
-                  >
-                    Cancelar
-                  </button>
+                <div className="flex gap-4">
+                  <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Salvar</button>
+                  <button type="button" onClick={handleCloseForm} className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Cancelar</button>
                 </div>
               </form>
             </div>
-          ) : (
-            <>
-              <div className="w-full bg-white rounded-xl mb-5 mt-7">
-                <SearchInput
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por pedido, cliente ou status..."
-                />
-              </div>
-
-              <PedidoTable
-                pedidos={filteredPedidos}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            </>
           )}
         </div>
       </main>

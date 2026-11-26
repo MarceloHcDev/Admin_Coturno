@@ -20,18 +20,39 @@ export default function Login(): React.JSX.Element {
   useEffect(() => {
     const existingToken = authStorage.getToken();
 
-    if (existingToken && !isSessionExpired) {
-      api
-        .get("/auth/me")
-        .then(() => {
-          navigate("/admin/dashboard", { replace: true });
-        })
-        .catch(() => {
-          authStorage.clear();
-        });
-    }
-  }, [navigate, isSessionExpired]);
+    if (!existingToken || isSessionExpired) return;
 
+    let active = true;
+
+    api
+      .get("/auth/me")
+      .then(() => {
+        if (active) {
+          navigate("/admin/", { replace: true });
+        }
+      })
+      .catch((error) => {
+        if (!active) return;
+
+        if (
+          axios.isAxiosError(error) &&
+          [401, 403].includes(error.response?.status ?? 0)
+        ) {
+          authStorage.clear();
+          navigate("/admin/login?session_expired=1", {
+            replace: true,
+          });
+          return;
+        }
+
+        // Erros 500, 502, 503 etc. não devem apagar o token.
+        console.error("Erro ao validar sessão:", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [navigate, isSessionExpired]);
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -46,7 +67,7 @@ export default function Login(): React.JSX.Element {
 
       await authService.login(email, password);
 
-      navigate("/admin/dashboard", { replace: true });
+      navigate("/admin/", { replace: true });
     } catch (err: unknown) {
       console.error("Erro no login:", err);
 
