@@ -11,6 +11,7 @@ import {
   AVAILABLE_SIZES,
 } from "../../hooks/useProdutosCatalogo";
 import { getStockAlertStyle } from "../../utils/stockAlerts";
+import { StockAlertLegend } from "../atoms/StockAlertLegend";
 
 export interface ProductFormProps {
   formMode: "create" | "edit";
@@ -573,6 +574,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </div>
               );
             })}
+          </div>
+          <div className="pt-1 border-t border-slate-200/70">
+            <StockAlertLegend scope="both" />
           </div>
         </div>
 

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import ProductTableHeader from "../molecules/ProductTableHeader";
 import { EditButton, DeleteButton, BoxIcon } from "../atoms/Icons";
+import { StockAlertLegend } from "../atoms/StockAlertLegend";
 import { getStockAlertStyle } from "../../utils/stockAlerts";
 
 export interface Product {
@@ -223,6 +224,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
         })}
         </tbody>
       </table>
+      <div className="px-4 py-2.5 bg-slate-50/80 border-t border-slate-200">
+        <StockAlertLegend scope="both" />
+      </div>
     </div>
   );
 };
