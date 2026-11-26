@@ -1,5 +1,6 @@
 // src/components/atoms/Icons.jsx
 import React from 'react';
+import { getStockAlertStyle } from '../../utils/stockAlerts';
 
 export interface IconProps {
   className?: string;
@@ -177,13 +178,11 @@ export const StarIcon: React.FC = () => (
 );
 
 export default function StockBadge({ quantity }: StockBadgeProps) {
-  const isLowStock = quantity < 30;
-  const badgeClass = isLowStock
-    ? 'bg-amber-100 text-amber-700'
-    : 'bg-green-100 text-green-700';
+  const style = getStockAlertStyle(quantity, 'total');
 
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${badgeClass}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${style.badge}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
       {quantity} unidades
     </span>
   );
