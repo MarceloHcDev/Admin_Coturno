@@ -10,6 +10,8 @@ import {
   ProductFormData,
   AVAILABLE_SIZES,
 } from "../../hooks/useProdutosCatalogo";
+import { getStockAlertStyle } from "../../utils/stockAlerts";
+import { StockAlertLegend } from "../atoms/StockAlertLegend";
 
 export interface ProductFormProps {
   formMode: "create" | "edit";
@@ -480,9 +482,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <label className="text-sm font-bold text-slate-800">
                   Grade de Numeração e Estoque por Tamanho (35 ao 46)
                 </label>
-                <span className="text-xs bg-blue-100 text-blue-700 font-bold px-2.5 py-0.5 rounded-full">
-                  Total: {totalGradeStock} pares
-                </span>
+                {(() => {
+                  const totalStyle = getStockAlertStyle(totalGradeStock, "total");
+                  return (
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full border ${totalStyle.badge}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${totalStyle.dot}`} />
+                      Total: {totalGradeStock} pares
+                    </span>
+                  );
+                })()}
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
                 Defina a quantidade exata para cada numeração. Os tamanhos com
@@ -536,21 +544,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 pt-1">
             {AVAILABLE_SIZES.map((size) => {
               const qty = formData.grade?.[size] ?? 0;
-              const hasStock = qty > 0;
+              const sizeStyle = getStockAlertStyle(qty, "size");
               return (
                 <div
                   key={size}
-                  className={`flex flex-col items-center justify-between p-2 rounded-lg border transition-all ${
-                    hasStock
-                      ? "bg-white border-blue-400 shadow-xs ring-1 ring-blue-400/20"
-                      : "bg-white/60 border-slate-200 opacity-70 hover:opacity-100"
-                  }`}
+                  className={`flex flex-col items-center justify-between p-2 rounded-lg border transition-all ${sizeStyle.card}`}
                 >
-                  <span
-                    className={`text-xs font-bold ${
-                      hasStock ? "text-blue-700" : "text-slate-600"
-                    }`}
-                  >
+                  <span className={`text-xs font-bold ${sizeStyle.text}`}>
                     Nº {size}
                   </span>
                   <input
@@ -568,12 +568,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       handleSizeStockChange(size, isNaN(val) ? 0 : val);
                     }}
                   />
-                  <span className="text-[10px] text-slate-400 mt-0.5">
-                    {hasStock ? `${qty} un.` : "0 un."}
+                  <span className={`text-[10px] font-medium mt-0.5 ${sizeStyle.text}`}>
+                    {qty} un.
                   </span>
                 </div>
               );
             })}
+          </div>
+          <div className="pt-1 border-t border-slate-200/70">
+            <StockAlertLegend scope="both" />
           </div>
         </div>
 
