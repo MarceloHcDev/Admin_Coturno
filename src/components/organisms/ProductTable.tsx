@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import ProductTableHeader from "../molecules/ProductTableHeader";
 import { EditButton, DeleteButton, BoxIcon } from "../atoms/Icons";
+import { getStockAlertStyle } from "../../utils/stockAlerts";
 
 export interface Product {
   id: string | number;
@@ -99,75 +100,66 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
               {/* Estoque com Popover / Tooltip */}
               <td className="py-3 px-4 whitespace-nowrap">
-                <div
-                  className="relative inline-block"
-                  onMouseEnter={() => setHoveredProductId(product.id)}
-                  onMouseLeave={() => setHoveredProductId(null)}
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setHoveredProductId((prev) =>
-                        prev === product.id ? null : product.id
-                      );
-                    }}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-medium text-xs transition-all cursor-pointer ${
-                      Number(product.stock) > 0
-                        ? "bg-slate-50 hover:bg-blue-50 text-slate-800 hover:text-blue-700 border-slate-200 hover:border-blue-300"
-                        : "bg-rose-50 text-rose-700 border-rose-200"
-                    }`}
-                    title="Passe o mouse ou clique para ver a grade de estoque"
-                  >
-                    <span className="font-semibold">{product.stock} un.</span>
-                    <span className="text-[10px] text-slate-400 group-hover:text-blue-500">
-                      ℹ️
-                    </span>
-                  </button>
-
-                  {/* Popover / Tooltip Flutuante */}
-                  {hoveredProductId === product.id && (
+                {(() => {
+                  const totalQty = Number(product.stock) || 0;
+                  const totalStyle = getStockAlertStyle(totalQty, "total");
+                  return (
                     <div
-                      className={`absolute left-0 z-50 w-64 p-3 bg-white rounded-xl shadow-xl border border-slate-200 text-left transition-all ${
-                        isLastRow ? "bottom-full mb-2" : "top-full mt-2"
-                      }`}
+                      className="relative inline-block"
+                      onMouseEnter={() => setHoveredProductId(product.id)}
+                      onMouseLeave={() => setHoveredProductId(null)}
                     >
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                        <span className="text-xs font-bold text-slate-800">
-                          Grade por Tamanho
-                        </span>
-                        <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                          Total: {product.stock} un.
-                        </span>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setHoveredProductId((prev) =>
+                            prev === product.id ? null : product.id
+                          );
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-medium text-xs transition-all cursor-pointer ${totalStyle.badge}`}
+                        title={`Estoque ${totalStyle.label.toLowerCase()} — passe o mouse ou clique para ver a grade`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${totalStyle.dot}`} />
+                        <span className="font-semibold">{product.stock} un.</span>
+                      </button>
 
-                      {product.grade && product.grade.length > 0 ? (
-                        <div className="grid grid-cols-4 gap-1.5 pt-2.5">
-                          {product.grade.map((item) => (
-                            <div
-                              key={item.size}
-                              className={`flex flex-col items-center justify-center p-1.5 rounded-lg border text-center transition-colors ${
-                                Number(item.stock) > 0
-                                  ? "bg-slate-50 border-slate-200 text-slate-900"
-                                  : "bg-slate-50/50 border-slate-100 text-slate-400 opacity-60"
-                              }`}
-                            >
-                              <span className="text-[11px] font-bold">
-                                Nº {item.size}
-                              </span>
-                              <span
-                                className={`text-[10px] font-semibold ${
-                                  Number(item.stock) > 0
-                                    ? "text-blue-600"
-                                    : "text-slate-400"
-                                }`}
-                              >
-                                {item.stock} un.
-                              </span>
+                      {/* Popover / Tooltip Flutuante */}
+                      {hoveredProductId === product.id && (
+                        <div
+                          className={`absolute left-0 z-50 w-64 p-3 bg-white rounded-xl shadow-xl border border-slate-200 text-left transition-all ${
+                            isLastRow ? "bottom-full mb-2" : "top-full mt-2"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                            <span className="text-xs font-bold text-slate-800">
+                              Grade por Tamanho
+                            </span>
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${totalStyle.badge}`}>
+                              Total: {product.stock} un.
+                            </span>
+                          </div>
+
+                          {product.grade && product.grade.length > 0 ? (
+                            <div className="grid grid-cols-4 gap-1.5 pt-2.5">
+                              {product.grade.map((item) => {
+                                const sizeStyle = getStockAlertStyle(Number(item.stock) || 0, "size");
+                                return (
+                                  <div
+                                    key={item.size}
+                                    className={`flex flex-col items-center justify-center p-1.5 rounded-lg border text-center transition-colors ${sizeStyle.card}`}
+                                  >
+                                    <span className="text-[11px] font-bold">
+                                      Nº {item.size}
+                                    </span>
+                                    <span className={`text-[10px] font-semibold ${sizeStyle.text}`}>
+                                      {item.stock} un.
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
-                          ))}
-                        </div>
-                      ) : (
+                          ) : (
                         <div className="pt-2 text-xs text-slate-500">
                           <p className="font-medium text-slate-700 mb-1">
                             Tamanhos cadastrados:
@@ -179,7 +171,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       )}
                     </div>
                   )}
-                </div>
+                    </div>
+                  );
+                })()}
               </td>
 
               {/* Tamanhos */}
@@ -208,9 +202,19 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               {/* Ações */}
               <td className="py-3 px-4 text-center whitespace-nowrap">
                 <div className="flex items-center justify-center gap-2">
-                  <EditButton onClick={() => onEdit(product.id)} />
+                  <div
+                    className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                    title="Editar produto"
+                  >
+                    <EditButton onClick={() => onEdit(product.id)} />
+                  </div>
                   {onDelete && (
-                    <DeleteButton onClick={() => onDelete(product.id)} />
+                    <div
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 transition-colors"
+                      title="Excluir produto"
+                    >
+                      <DeleteButton onClick={() => onDelete(product.id)} />
+                    </div>
                   )}
                 </div>
               </td>

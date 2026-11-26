@@ -1,5 +1,17 @@
-import React, { ChangeEvent, FormEvent, useMemo, useEffect, useState, useRef } from "react";
-import { ProductFormData, AVAILABLE_SIZES } from "../../hooks/useProdutosCatalogo";
+import React, {
+  ChangeEvent,
+  FormEvent,
+  useMemo,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
+import {
+  ProductFormData,
+  AVAILABLE_SIZES,
+} from "../../hooks/useProdutosCatalogo";
+import { getStockAlertStyle } from "../../utils/stockAlerts";
+import { StockAlertLegend } from "../atoms/StockAlertLegend";
 
 export interface ProductFormProps {
   formMode: "create" | "edit";
@@ -16,6 +28,22 @@ export interface ProductFormProps {
   onCancel: () => void;
   saving: boolean;
 }
+
+const PRODUCT_TYPE_GROUPS = [
+  {
+    label: "Coturnos e Sapatos",
+    items: ["Coturnos Militares", "Sapatos Sociais"],
+  },
+  {
+    label: "Acessórios",
+    items: [
+      "Cintos e Coldres",
+      "Mochilas",
+      "Meias Térmicas",
+      "Bonés e Chapéus",
+    ],
+  },
+];
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   formMode,
@@ -49,7 +77,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const slotsRestantes = Math.max(0, 6 - totalFotosAtivas);
 
   const [bulkQuantity, setBulkQuantity] = useState<string>("5");
-  const [activePopup, setActivePopup] = useState<"tipo" | "terreno" | "marca" | null>(null);
+  const [activePopup, setActivePopup] = useState<
+    "tipo" | "terreno" | "marca" | null
+  >(null);
 
   const tipoRef = useRef<HTMLDivElement>(null);
   const terrenoRef = useRef<HTMLDivElement>(null);
@@ -91,7 +121,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     if (!formData.grade) return 0;
     return Object.values(formData.grade).reduce(
       (acc, val) => acc + (Number(val) || 0),
-      0
+      0,
     );
   }, [formData.grade]);
 
@@ -99,7 +129,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     const updatedGrade = { ...(formData.grade || {}), [size]: qty };
     const total = Object.values(updatedGrade).reduce(
       (acc, val) => acc + (Number(val) || 0),
-      0
+      0,
     );
     const activeSizes = Object.entries(updatedGrade)
       .filter(([_, q]) => Number(q) > 0)
@@ -180,51 +210,84 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </label>
             <input
               type="text"
-              placeholder="Selecione ou digite o tipo..."
-              className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.productType}
-              onFocus={() => setActivePopup("tipo")}
-              onClick={() => setActivePopup("tipo")}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  productType: e.target.value,
-                })
-              }
+              onChange={() => {}}
               required
+              tabIndex={-1}
+              aria-hidden="true"
+              className="sr-only"
             />
-            {activePopup === "tipo" && topTipos && topTipos.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
-                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
-                  <span className="text-[11px] font-bold text-slate-700">
-                    Mais frequentes:
-                  </span>
-                  <span className="text-[10px] text-blue-600 font-medium">
-                    Clique para selecionar ou digite
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {topTipos.map((tipo) => (
-                    <button
-                      key={tipo}
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, productType: tipo }));
-                        setActivePopup(null);
-                      }}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
-                        formData.productType?.toLowerCase() === tipo.toLowerCase()
-                          ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
-                          : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      {tipo}
-                    </button>
-                  ))}
-                </div>
-                <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
-                  💡 Clique em uma opção acima ou digite livremente no campo.
-                </div>
+            <button
+              type="button"
+              onClick={() =>
+                setActivePopup((prev) => (prev === "tipo" ? null : "tipo"))
+              }
+              className={`w-full p-2 border rounded-lg bg-white text-left flex items-center justify-between transition-colors cursor-pointer focus:outline-none ${
+                activePopup === "tipo"
+                  ? "border-blue-500 ring-2 ring-blue-500/15"
+                  : "border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              <span
+                className={
+                  formData.productType
+                    ? "text-slate-900 font-medium"
+                    : "text-slate-400"
+                }
+              >
+                {formData.productType || "Selecione o tipo do produto..."}
+              </span>
+              <svg
+                className={`w-4 h-4 text-slate-400 transition-transform duration-150 ${
+                  activePopup === "tipo" ? "rotate-180 text-blue-600" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {activePopup === "tipo" && (
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-64 p-3 bg-white rounded-xl shadow-xl border border-slate-200 space-y-3">
+                {PRODUCT_TYPE_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      {group.label}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.items.map((tipo) => {
+                        const isSelected = formData.productType === tipo;
+                        return (
+                          <button
+                            key={tipo}
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                productType: tipo,
+                              }));
+                              setActivePopup(null);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                              isSelected
+                                ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                                : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                            }`}
+                          >
+                            {tipo}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -249,7 +312,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               }
             />
             {activePopup === "terreno" && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-60 p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
                 <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
                   <span className="text-[11px] font-bold text-slate-700">
                     Opções de Terreno:
@@ -259,25 +322,32 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {["Multiterreno", "Tático/Militar", "Urbano/Asfalto", "Trilha/Lama"].map(
-                    (terreno) => (
-                      <button
-                        key={terreno}
-                        type="button"
-                        onClick={() => {
-                          setFormData((prev) => ({ ...prev, terrainType: terreno }));
-                          setActivePopup(null);
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
-                          formData.terrainType?.toLowerCase() === terreno.toLowerCase()
-                            ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
-                            : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
-                        }`}
-                      >
-                        {terreno}
-                      </button>
-                    )
-                  )}
+                  {[
+                    "Multiterreno",
+                    "Tático/Militar",
+                    "Urbano/Asfalto",
+                    "Trilha/Lama",
+                  ].map((terreno) => (
+                    <button
+                      key={terreno}
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          terrainType: terreno,
+                        }));
+                        setActivePopup(null);
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                        formData.terrainType?.toLowerCase() ===
+                        terreno.toLowerCase()
+                          ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                          : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      {terreno}
+                    </button>
+                  ))}
                 </div>
                 <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
                   💡 Clique em uma opção acima ou digite livremente no campo.
@@ -316,7 +386,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               required
             />
             {activePopup === "marca" && topMarcas && topMarcas.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-[240px] p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-60 p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
                 <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
                   <span className="text-[11px] font-bold text-slate-700">
                     Mais frequentes:
@@ -388,7 +458,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
           {/* Cor */}
           <div className="flex flex-col space-y-1">
-            <label className="text-sm font-medium text-slate-600">Cor Predominante</label>
+            <label className="text-sm font-medium text-slate-600">
+              Cor Predominante
+            </label>
             <input
               type="text"
               placeholder="Ex: Preto"
@@ -410,12 +482,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <label className="text-sm font-bold text-slate-800">
                   Grade de Numeração e Estoque por Tamanho (35 ao 46)
                 </label>
-                <span className="text-xs bg-blue-100 text-blue-700 font-bold px-2.5 py-0.5 rounded-full">
-                  Total: {totalGradeStock} pares
-                </span>
+                {(() => {
+                  const totalStyle = getStockAlertStyle(totalGradeStock, "total");
+                  return (
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full border ${totalStyle.badge}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${totalStyle.dot}`} />
+                      Total: {totalGradeStock} pares
+                    </span>
+                  );
+                })()}
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Defina a quantidade exata para cada numeração. Os tamanhos com quantidade maior que zero serão exibidos na loja.
+                Defina a quantidade exata para cada numeração. Os tamanhos com
+                quantidade maior que zero serão exibidos na loja.
               </p>
             </div>
 
@@ -465,21 +544,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2 pt-1">
             {AVAILABLE_SIZES.map((size) => {
               const qty = formData.grade?.[size] ?? 0;
-              const hasStock = qty > 0;
+              const sizeStyle = getStockAlertStyle(qty, "size");
               return (
                 <div
                   key={size}
-                  className={`flex flex-col items-center justify-between p-2 rounded-lg border transition-all ${
-                    hasStock
-                      ? "bg-white border-blue-400 shadow-xs ring-1 ring-blue-400/20"
-                      : "bg-white/60 border-slate-200 opacity-70 hover:opacity-100"
-                  }`}
+                  className={`flex flex-col items-center justify-between p-2 rounded-lg border transition-all ${sizeStyle.card}`}
                 >
-                  <span
-                    className={`text-xs font-bold ${
-                      hasStock ? "text-blue-700" : "text-slate-600"
-                    }`}
-                  >
+                  <span className={`text-xs font-bold ${sizeStyle.text}`}>
                     Nº {size}
                   </span>
                   <input
@@ -490,16 +561,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     value={qty === 0 ? "" : qty}
                     placeholder="0"
                     onChange={(e) => {
-                      const val = Math.max(0, parseInt(e.target.value || "0", 10));
+                      const val = Math.max(
+                        0,
+                        parseInt(e.target.value || "0", 10),
+                      );
                       handleSizeStockChange(size, isNaN(val) ? 0 : val);
                     }}
                   />
-                  <span className="text-[10px] text-slate-400 mt-0.5">
-                    {hasStock ? `${qty} un.` : "0 un."}
+                  <span className={`text-[10px] font-medium mt-0.5 ${sizeStyle.text}`}>
+                    {qty} un.
                   </span>
                 </div>
               );
             })}
+          </div>
+          <div className="pt-1 border-t border-slate-200/70">
+            <StockAlertLegend scope="both" />
           </div>
         </div>
 

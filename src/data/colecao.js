@@ -16,7 +16,6 @@ export const colecaoItens = [
     id: 2,
     name: "Bota Militar Delta",
     price: "R$ 459,90",
-    oldPrice: "R$ 299,90",
     image: "/coturno4.jpeg",
     hoverImage: "/coturno1.jpeg",
   },

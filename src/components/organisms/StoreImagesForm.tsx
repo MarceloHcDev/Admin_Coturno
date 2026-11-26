@@ -1,135 +1,410 @@
 // src/components/organisms/StoreImagesForm.tsx
-import React, { useState } from 'react';
-import { ImageUploadInput } from '../atoms/ImageUploadInput';
-import { api, ApiError } from '../../services/api';
+import React, { useState } from "react";
+import { ImageUploadInput, ImageVariant } from "../atoms/ImageUploadInput";
+import { api } from "../../services/api";
+
+export type StoreImageSlotKey =
+  | "hero_1_desktop"
+  | "hero_1_mobile"
+  | "hero_2_desktop"
+  | "hero_2_mobile"
+  | "hero_3_desktop"
+  | "hero_3_mobile"
+  | "promo_1_desktop"
+  | "promo_1_mobile"
+  | "promo_2_desktop"
+  | "promo_2_mobile"
+  | "promo_3_desktop"
+  | "promo_3_mobile"
+  | "category_1"
+  | "category_2";
+
+export interface StoreImageSlotConfig {
+  key: StoreImageSlotKey;
+  label: string;
+  variant: ImageVariant;
+  recommendedSize: string;
+  cloudinaryFolder: string;
+  cloudinaryPublicId: string;
+}
+
+interface CarouselSlideGroup {
+  slideNumber: number;
+  title: string;
+  desktop: StoreImageSlotConfig;
+  mobile: StoreImageSlotConfig;
+}
+
+export const HERO_SLIDES: CarouselSlideGroup[] = [
+  {
+    slideNumber: 1,
+    title: "Imagem 1 do Hero",
+    desktop: {
+      key: "hero_1_desktop",
+      label: "Anexo Desktop",
+      variant: "desktop",
+      recommendedSize: "1920x823px",
+      cloudinaryFolder: "store/hero/desktop",
+      cloudinaryPublicId: "hero_1_desktop",
+    },
+    mobile: {
+      key: "hero_1_mobile",
+      label: "Anexo Mobile",
+      variant: "mobile",
+      recommendedSize: "1080x1350px",
+      cloudinaryFolder: "store/hero/mobile",
+      cloudinaryPublicId: "hero_1_mobile",
+    },
+  },
+  {
+    slideNumber: 2,
+    title: "Imagem 2 do Hero",
+    desktop: {
+      key: "hero_2_desktop",
+      label: "Anexo Desktop",
+      variant: "desktop",
+      recommendedSize: "1920x823px",
+      cloudinaryFolder: "store/hero/desktop",
+      cloudinaryPublicId: "hero_2_desktop",
+    },
+    mobile: {
+      key: "hero_2_mobile",
+      label: "Anexo Mobile",
+      variant: "mobile",
+      recommendedSize: "1080x1350px",
+      cloudinaryFolder: "store/hero/mobile",
+      cloudinaryPublicId: "hero_2_mobile",
+    },
+  },
+  {
+    slideNumber: 3,
+    title: "Imagem 3 do Hero",
+    desktop: {
+      key: "hero_3_desktop",
+      label: "Anexo Desktop",
+      variant: "desktop",
+      recommendedSize: "1920x823px",
+      cloudinaryFolder: "store/hero/desktop",
+      cloudinaryPublicId: "hero_3_desktop",
+    },
+    mobile: {
+      key: "hero_3_mobile",
+      label: "Anexo Mobile",
+      variant: "mobile",
+      recommendedSize: "1080x1350px",
+      cloudinaryFolder: "store/hero/mobile",
+      cloudinaryPublicId: "hero_3_mobile",
+    },
+  },
+];
+
+export const PROMO_SLIDES: CarouselSlideGroup[] = [
+  {
+    slideNumber: 1,
+    title: "Imagem 1 do Carrossel Promocional",
+    desktop: {
+      key: "promo_1_desktop",
+      label: "Anexo Desktop",
+      variant: "desktop",
+      recommendedSize: "1200x400px",
+      cloudinaryFolder: "store/promo/desktop",
+      cloudinaryPublicId: "promo_1_desktop",
+    },
+    mobile: {
+      key: "promo_1_mobile",
+      label: "Anexo Mobile",
+      variant: "mobile",
+      recommendedSize: "800x600px",
+      cloudinaryFolder: "store/promo/mobile",
+      cloudinaryPublicId: "promo_1_mobile",
+    },
+  },
+  {
+    slideNumber: 2,
+    title: "Imagem 2 do Carrossel Promocional",
+    desktop: {
+      key: "promo_2_desktop",
+      label: "Anexo Desktop",
+      variant: "desktop",
+      recommendedSize: "1200x400px",
+      cloudinaryFolder: "store/promo/desktop",
+      cloudinaryPublicId: "promo_2_desktop",
+    },
+    mobile: {
+      key: "promo_2_mobile",
+      label: "Anexo Mobile",
+      variant: "mobile",
+      recommendedSize: "800x600px",
+      cloudinaryFolder: "store/promo/mobile",
+      cloudinaryPublicId: "promo_2_mobile",
+    },
+  },
+  {
+    slideNumber: 3,
+    title: "Imagem 3 do Carrossel Promocional",
+    desktop: {
+      key: "promo_3_desktop",
+      label: "Anexo Desktop",
+      variant: "desktop",
+      recommendedSize: "1200x400px",
+      cloudinaryFolder: "store/promo/desktop",
+      cloudinaryPublicId: "promo_3_desktop",
+    },
+    mobile: {
+      key: "promo_3_mobile",
+      label: "Anexo Mobile",
+      variant: "mobile",
+      recommendedSize: "800x600px",
+      cloudinaryFolder: "store/promo/mobile",
+      cloudinaryPublicId: "promo_3_mobile",
+    },
+  },
+];
+
+export const CATEGORY_SLOTS: Record<
+  "category_1" | "category_2",
+  StoreImageSlotConfig
+> = {
+  category_1: {
+    key: "category_1",
+    label: "Anexo da Imagem de Destaque 1",
+    variant: "single",
+    recommendedSize: "800x800px",
+    cloudinaryFolder: "store/categories",
+    cloudinaryPublicId: "category_1",
+  },
+  category_2: {
+    key: "category_2",
+    label: "Anexo da Imagem de Destaque 2",
+    variant: "single",
+    recommendedSize: "800x800px",
+    cloudinaryFolder: "store/categories",
+    cloudinaryPublicId: "category_2",
+  },
+};
+
+const ALL_SLOTS: StoreImageSlotConfig[] = [
+  ...HERO_SLIDES.flatMap((s) => [s.desktop, s.mobile]),
+  ...PROMO_SLIDES.flatMap((s) => [s.desktop, s.mobile]),
+  CATEGORY_SLOTS.category_1,
+  CATEGORY_SLOTS.category_2,
+];
 
 export const StoreImagesForm: React.FC = () => {
-  const [hero1File, setHero1File] = useState<File | null>(null);
-  const [hero2File, setHero2File] = useState<File | null>(null);
-  const [hero3File, setHero3File] = useState<File | null>(null);
-  const [carouselFile, setCarouselFile] = useState<File | null>(null);
-  const [categoryFile, setCategoryFile] = useState<File | null>(null);
-
+  const [selectedFiles, setSelectedFiles] = useState<
+    Partial<Record<StoreImageSlotKey, File | null>>
+  >({});
+  const [uploadedUrls, setUploadedUrls] = useState<
+    Partial<Record<StoreImageSlotKey, string>>
+  >({});
   const [loading, setLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const handleFileChange = (key: StoreImageSlotKey, file: File | null) => {
+    setSelectedFiles((prev) => ({
+      ...prev,
+      [key]: file,
+    }));
+  };
+
+  const selectedCount = ALL_SLOTS.filter((slot) =>
+    Boolean(selectedFiles[slot.key]),
+  ).length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatusMessage(null);
 
-    // Validação local: verifica se ao menos uma imagem foi selecionada
-    if (!hero1File && !hero2File && !hero3File && !carouselFile && !categoryFile) {
+    const entriesToUpload = ALL_SLOTS.filter((slot) =>
+      Boolean(selectedFiles[slot.key]),
+    );
+
+    if (entriesToUpload.length === 0) {
       setStatusMessage({
-        type: 'error',
-        text: 'Por favor, selecione ao menos uma imagem para enviar.',
+        type: "error",
+        text: "Por favor, selecione ao menos uma imagem para enviar.",
       });
       return;
     }
 
-    // Instancia o FormData para envio multipart/form-data
+    // FormData preparado para integração com Cloudinary no back-end:
+    // envia cada arquivo pela sua chave única (ex: hero_1_desktop, promo_2_mobile, category_1)
+    // e também um manifesto JSON com pasta/public_id de destino no Cloudinary.
     const formData = new FormData();
+    const cloudinaryManifest: Array<{
+      slot: StoreImageSlotKey;
+      folder: string;
+      public_id: string;
+    }> = [];
 
-    // Hero: o back-end renomeia para hero1, hero2 e hero3 na pasta "carrossel"
-    if (hero1File) formData.append('hero1', hero1File);
-    if (hero2File) formData.append('hero2', hero2File);
-    if (hero3File) formData.append('hero3', hero3File);
-    if (carouselFile) formData.append('carousel', carouselFile);
-    if (categoryFile) formData.append('category', categoryFile);
+    for (const slot of entriesToUpload) {
+      const file = selectedFiles[slot.key];
+      if (!file) continue;
+
+      formData.append(slot.key, file);
+      cloudinaryManifest.push({
+        slot: slot.key,
+        folder: slot.cloudinaryFolder,
+        public_id: slot.cloudinaryPublicId,
+      });
+    }
+
+    formData.append("cloudinary_manifest", JSON.stringify(cloudinaryManifest));
 
     setLoading(true);
 
     try {
-      // A base da URL (VITE_API_URL, já com /api), o token e o tratamento de erro vêm de services/api
-      const data = await api<{ success: boolean; urls: unknown }>(
-        '/v1/admin/upload-store-images',
-        { method: 'POST', body: formData },
-      );
+      const response = await api.post("/upload-store-images", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
-      if (data.success) {
+      const data = response.data;
+      const isSuccess = data?.success === true || data?.status === "success";
+
+      if (isSuccess) {
+        if (data?.urls && typeof data.urls === "object") {
+          setUploadedUrls((prev) => ({ ...prev, ...data.urls }));
+        }
         setStatusMessage({
-          type: 'success',
-          text: 'Imagens enviadas e atualizadas no Cloudinary com sucesso!',
+          type: "success",
+          text:
+            data?.message ||
+            "Imagens enviadas e atualizadas no Cloudinary com sucesso!",
         });
-        console.log('URLs retornadas do Cloudinary:', data.urls);
       } else {
         setStatusMessage({
-          type: 'error',
-          text: 'Erro ao realizar o envio das imagens.',
+          type: "error",
+          text:
+            data?.message ||
+            data?.error ||
+            "Erro ao realizar o envio das imagens.",
         });
       }
-    } catch (error) {
-      console.error('Erro na requisição:', error);
+    } catch (error: any) {
+      console.error("Erro na requisição de upload de imagens da loja:", error);
+      const apiMsg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Falha na comunicação com o servidor. Verifique a conexão com o back-end.";
       setStatusMessage({
-        type: 'error',
-        text:
-          error instanceof ApiError
-            ? error.message
-            : 'Falha na comunicação com o servidor. Verifique a conexão com o back-end.',
+        type: "error",
+        text: apiMsg,
       });
     } finally {
       setLoading(false);
     }
   };
 
+  const renderSlideGroup = (slide: CarouselSlideGroup) => (
+    <div
+      key={`${slide.desktop.key}-${slide.mobile.key}`}
+      className="rounded-xl border border-gray-200 bg-white p-4 space-y-3"
+    >
+      <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+        <h3 className="text-sm font-semibold text-gray-800">{slide.title}</h3>
+        <span className="text-xs text-gray-400">Desktop + Mobile</span>
+      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <ImageUploadInput
+          id={slide.desktop.key}
+          label={slide.desktop.label}
+          variant={slide.desktop.variant}
+          recommendedSize={slide.desktop.recommendedSize}
+          cloudinaryPublicId={`${slide.desktop.cloudinaryFolder}/${slide.desktop.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls[slide.desktop.key]}
+          onImageChange={(file) => handleFileChange(slide.desktop.key, file)}
+        />
+        <ImageUploadInput
+          id={slide.mobile.key}
+          label={slide.mobile.label}
+          variant={slide.mobile.variant}
+          recommendedSize={slide.mobile.recommendedSize}
+          cloudinaryPublicId={`${slide.mobile.cloudinaryFolder}/${slide.mobile.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls[slide.mobile.key]}
+          onImageChange={(file) => handleFileChange(slide.mobile.key, file)}
+        />
+      </div>
+    </div>
+  );
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      {/* Seção 1: Banner Principal */}
-      <section className="border-b border-gray-200 pb-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-1">
-          1. Hero - Banner Principal (Home)
-        </h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Imagens de destaque principal exibida no topo do site da loja virtual.
-        </p>
-        <ImageUploadInput
-          id="hero-imagem-1"
-          label="Anexo da Imagem 1 do carrossel"
-          recommendedSize="1920x823px"
-          onImageChange={(file) => setHero1File(file)}
-        />
-        <ImageUploadInput
-          id="hero-imagem-2"
-          label="Anexo da Imagem 2 do carrossel"
-          recommendedSize="1920x823px"
-          onImageChange={(file) => setHero2File(file)}
-        />
-        <ImageUploadInput
-          id="hero-imagem-3"
-          label="Anexo da Imagem 3 do carrossel"
-          recommendedSize="1920x823px"
-          onImageChange={(file) => setHero3File(file)}
-        />
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-8 bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-10"
+    >
+      {/* Seção 1: Banner Principal (Hero) */}
+      <section className="border-b border-gray-200 pb-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            1. Hero - Banner Principal (Home)
+          </h2>
+          <p className="text-sm text-gray-500">
+            Imagens de destaque principal exibidas no topo do site (3 slides com
+            versão Desktop e Mobile).
+          </p>
+        </div>
+        <div className="space-y-4">{HERO_SLIDES.map(renderSlideGroup)}</div>
       </section>
 
       {/* Seção 2: Carrossel Promocional */}
-      <section className="border-b border-gray-200 pb-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-1">
-          2. Carrossel Promocional
-        </h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Banner secundário rotativo para campanhas de desconto ou lançamentos.
-        </p>
+      <section className="border-b border-gray-200 pb-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            2. Carrossel Promocional
+          </h2>
+          <p className="text-sm text-gray-500">
+            Banner secundário rotativo para campanhas de desconto ou lançamentos
+            (3 slides com versão Desktop e Mobile).
+          </p>
+        </div>
+        <div className="space-y-4">{PROMO_SLIDES.map(renderSlideGroup)}</div>
+      </section>
+
+      {/* Seção 3: Card Destaque de Categorias 1 */}
+      <section className="border-b border-gray-200 pb-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            3. Card Destaque de Categorias 1
+          </h2>
+          <p className="text-sm text-gray-500">
+            Primeira imagem ilustrativa de coleção em destaque na página
+            inicial.
+          </p>
+        </div>
         <ImageUploadInput
-          id="carrossel-promocional"
-          label="Anexo da Imagem do Carrossel"
-          recommendedSize="1200x400px"
-          onImageChange={(file) => setCarouselFile(file)}
+          id={CATEGORY_SLOTS.category_1.key}
+          label={CATEGORY_SLOTS.category_1.label}
+          variant={CATEGORY_SLOTS.category_1.variant}
+          recommendedSize={CATEGORY_SLOTS.category_1.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.category_1.cloudinaryFolder}/${CATEGORY_SLOTS.category_1.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.category_1}
+          onImageChange={(file) => handleFileChange("category_1", file)}
         />
       </section>
 
-      {/* Seção 3: Card de Destaque de Categoria */}
-      <section className="pb-2">
-        <h2 className="text-lg font-semibold text-gray-800 mb-1">
-          3. Card Destaque de Categorias
-        </h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Imagem ilustrativa das coleções em destaque na página inicial.
-        </p>
+      {/* Seção 4: Card Destaque de Categorias 2 */}
+      <section className="pb-2 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            4. Card Destaque de Categorias 2
+          </h2>
+          <p className="text-sm text-gray-500">
+            Segunda imagem ilustrativa de coleção em destaque na página inicial.
+          </p>
+        </div>
         <ImageUploadInput
-          id="destaque-categoria"
-          label="Anexo da Imagem de Destaque"
-          recommendedSize="800x800px"
-          onImageChange={(file) => setCategoryFile(file)}
+          id={CATEGORY_SLOTS.category_2.key}
+          label={CATEGORY_SLOTS.category_2.label}
+          variant={CATEGORY_SLOTS.category_2.variant}
+          recommendedSize={CATEGORY_SLOTS.category_2.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.category_2.cloudinaryFolder}/${CATEGORY_SLOTS.category_2.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.category_2}
+          onImageChange={(file) => handleFileChange("category_2", file)}
         />
       </section>
 
@@ -137,18 +412,38 @@ export const StoreImagesForm: React.FC = () => {
       {statusMessage && (
         <div
           role="alert"
-          className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium ${statusMessage.type === 'success'
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-red-50 text-red-700 border border-red-200'
+          className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium ${statusMessage.type === "success"
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-700 border border-red-200"
             }`}
         >
-          {statusMessage.type === 'success' ? (
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          {statusMessage.type === "success" ? (
+            <svg
+              className="w-5 h-5 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           ) : (
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg
+              className="w-5 h-5 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
           )}
           <span>{statusMessage.text}</span>
@@ -156,19 +451,40 @@ export const StoreImagesForm: React.FC = () => {
       )}
 
       {/* Ações do Formulário */}
-      <div className="flex justify-end pt-4 border-t border-gray-100">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-100">
+        <span className="text-xs text-slate-500">
+          {selectedCount === 0
+            ? "Nenhuma imagem nova selecionada"
+            : `${selectedCount} ${selectedCount === 1 ? "imagem selecionada" : "imagens selecionadas"} para envio`}
+        </span>
+
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2.5 bg-blue-900 hover:bg-zinc-800 disabled:bg-blue-900/60 disabled:cursor-not-allowed text-white font-medium text-sm rounded-lg transition-colors shadow-sm inline-flex items-center gap-2"
+          className="px-6 py-2.5 bg-blue-900 hover:bg-zinc-800 disabled:bg-blue-900/60 disabled:cursor-not-allowed text-white font-medium text-sm rounded-lg transition-colors shadow-sm inline-flex items-center gap-2 cursor-pointer"
         >
           {loading && (
-            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <svg
+              className="animate-spin w-4 h-4"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
             </svg>
           )}
-          {loading ? 'Enviando...' : 'Salvar Alterações'}
+          {loading ? "Enviando..." : "Salvar Alterações"}
         </button>
       </div>
     </form>

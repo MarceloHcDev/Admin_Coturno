@@ -3,6 +3,7 @@ import Sidebar from "../components/organisms/Sidebar";
 import PageHeader from "../components/molecules/PageHeader";
 import SearchInput from "../components/atoms/SearchInput";
 import ProductTable from "../components/organisms/ProductTable";
+import { StockAlertLegend } from "../components/atoms/StockAlertLegend";
 import ProductForm from "../components/organisms/ProductForm";
 import Toast from "../components/molecules/Toast";
 import ConfirmModal from "../components/molecules/ConfirmModal";
@@ -86,12 +87,16 @@ export default function Produtos_Catalogo(): React.JSX.Element {
             />
           ) : (
             <>
-              <div className="w-full bg-white rounded-xl mb-5 mt-7">
+              <div className="w-full bg-white rounded-xl mb-3 mt-7">
                 <SearchInput
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Buscar produtos..."
                 />
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 mb-4 shadow-xs">
+                <StockAlertLegend scope="both" />
               </div>
 
               {loading ? (
