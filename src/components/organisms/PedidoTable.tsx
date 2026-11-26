@@ -27,8 +27,9 @@ const statusCompraStyles: Record<PedidoCompraStatus, string> = {
   Em_contestação: 'bg-rose-50 text-rose-700 border border-rose-200',
 };
 
-const statusEnvioStyles: Record<PedidoEnvioStatus, string> = {
+const statusEnvioStyles: Record<PedidoEnvioStatus | string, string> = {
   Pendente: 'bg-amber-50 text-amber-700 border border-amber-200',
+  'Em Separação': 'bg-amber-50 text-amber-700 border border-amber-200',
   Enviado: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
   Entregue: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   Cancelado: 'bg-rose-50 text-rose-700 border border-rose-200',
@@ -60,8 +61,8 @@ export const PedidoTable: React.FC<PedidoTableProps> = ({
               </td>
 
               {/* Endereço de Entrega (endereco_id) */}
-              <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
-                {pedido.endereco?.logradouro ?? `Endereço #${pedido.enderecoId}`}
+              <td className="py-3 px-4 text-gray-600 whitespace-nowrap max-w-xs truncate" title={pedido.endereco?.texto || pedido.endereco?.logradouro || ''}>
+                {pedido.endereco?.texto ?? pedido.endereco?.logradouro ?? `Endereço #${pedido.enderecoId}`}
               </td>
 
               {/* Valor Total */}
