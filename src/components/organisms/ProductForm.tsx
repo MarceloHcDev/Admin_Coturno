@@ -27,6 +27,22 @@ export interface ProductFormProps {
   saving: boolean;
 }
 
+const PRODUCT_TYPE_GROUPS = [
+  {
+    label: "Coturnos e Sapatos",
+    items: ["Coturnos Militares", "Sapatos Sociais"],
+  },
+  {
+    label: "Acessórios",
+    items: [
+      "Cintos e Coldres",
+      "Mochilas",
+      "Meias Térmicas",
+      "Bonés e Chapéus",
+    ],
+  },
+];
+
 export const ProductForm: React.FC<ProductFormProps> = ({
   formMode,
   formData,
@@ -192,52 +208,84 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </label>
             <input
               type="text"
-              placeholder="Selecione ou digite o tipo..."
-              className="p-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 text-slate-900 bg-white"
               value={formData.productType}
-              onFocus={() => setActivePopup("tipo")}
-              onClick={() => setActivePopup("tipo")}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  productType: e.target.value,
-                })
-              }
+              onChange={() => {}}
               required
+              tabIndex={-1}
+              aria-hidden="true"
+              className="sr-only"
             />
-            {activePopup === "tipo" && topTipos && topTipos.length > 0 && (
-              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-60 p-2.5 bg-white rounded-xl shadow-xl border border-slate-200 animate-in fade-in duration-100">
-                <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100">
-                  <span className="text-[11px] font-bold text-slate-700">
-                    Mais frequentes:
-                  </span>
-                  <span className="text-[10px] text-blue-600 font-medium">
-                    Clique para selecionar ou digite
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {topTipos.map((tipo) => (
-                    <button
-                      key={tipo}
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, productType: tipo }));
-                        setActivePopup(null);
-                      }}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
-                        formData.productType?.toLowerCase() ===
-                        tipo.toLowerCase()
-                          ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
-                          : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      {tipo}
-                    </button>
-                  ))}
-                </div>
-                <div className="pt-2 mt-2 border-t border-slate-100 text-[10px] text-slate-400">
-                  💡 Clique em uma opção acima ou digite livremente no campo.
-                </div>
+            <button
+              type="button"
+              onClick={() =>
+                setActivePopup((prev) => (prev === "tipo" ? null : "tipo"))
+              }
+              className={`w-full p-2 border rounded-lg bg-white text-left flex items-center justify-between transition-colors cursor-pointer focus:outline-none ${
+                activePopup === "tipo"
+                  ? "border-blue-500 ring-2 ring-blue-500/15"
+                  : "border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              <span
+                className={
+                  formData.productType
+                    ? "text-slate-900 font-medium"
+                    : "text-slate-400"
+                }
+              >
+                {formData.productType || "Selecione o tipo do produto..."}
+              </span>
+              <svg
+                className={`w-4 h-4 text-slate-400 transition-transform duration-150 ${
+                  activePopup === "tipo" ? "rotate-180 text-blue-600" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {activePopup === "tipo" && (
+              <div className="absolute top-full left-0 mt-1 z-30 w-full min-w-64 p-3 bg-white rounded-xl shadow-xl border border-slate-200 space-y-3">
+                {PRODUCT_TYPE_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      {group.label}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {group.items.map((tipo) => {
+                        const isSelected = formData.productType === tipo;
+                        return (
+                          <button
+                            key={tipo}
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                productType: tipo,
+                              }));
+                              setActivePopup(null);
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+                              isSelected
+                                ? "bg-blue-600 text-white border-blue-600 font-semibold shadow-xs"
+                                : "bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border-slate-200"
+                            }`}
+                          >
+                            {tipo}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
