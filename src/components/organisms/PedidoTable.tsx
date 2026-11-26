@@ -27,12 +27,42 @@ const statusCompraStyles: Record<PedidoCompraStatus, string> = {
   Em_contestação: 'bg-rose-50 text-rose-700 border border-rose-200',
 };
 
-const statusEnvioStyles: Record<PedidoEnvioStatus | string, string> = {
+const statusEnvioStyles: Record<string, string> = {
+  pending: 'bg-amber-50 text-amber-700 border border-amber-200',
   Pendente: 'bg-amber-50 text-amber-700 border border-amber-200',
+  paid: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  Pago: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  preparing: 'bg-amber-50 text-amber-700 border border-amber-200',
   'Em Separação': 'bg-amber-50 text-amber-700 border border-amber-200',
+  shipped: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
   Enviado: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+  delivered: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   Entregue: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  cancelled: 'bg-rose-50 text-rose-700 border border-rose-200',
   Cancelado: 'bg-rose-50 text-rose-700 border border-rose-200',
+};
+
+const normalizeStatus = (raw?: string | null): string => {
+  if (!raw) return 'pending';
+  const s = String(raw).toLowerCase().trim();
+  const map: Record<string, string> = {
+    pendente: 'pending',
+    pending: 'pending',
+    pago: 'paid',
+    paid: 'paid',
+    aprovado: 'paid',
+    'em separação': 'preparing',
+    'em separacao': 'preparing',
+    em_separacao: 'preparing',
+    preparing: 'preparing',
+    enviado: 'shipped',
+    shipped: 'shipped',
+    entregue: 'delivered',
+    delivered: 'delivered',
+    cancelado: 'cancelled',
+    cancelled: 'cancelled',
+  };
+  return map[s] || s;
 };
 
 export const PedidoTable: React.FC<PedidoTableProps> = ({
@@ -46,80 +76,86 @@ export const PedidoTable: React.FC<PedidoTableProps> = ({
       <table className="w-full border-collapse align-middle">
         <PedidoTableHeader />
         <tbody className="divide-y divide-slate-100 text-sm text-slate-800">
-          {pedidos.map((pedido) => (
-            <tr key={pedido.id} className="hover:bg-slate-50/50 transition-colors">
-              {/* Pedido */}
-              <td className="py-3 px-4 flex items-center gap-3 whitespace-nowrap">
-                <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 shrink-0">
-                  <BoxIcon className="w-5 h-5" />
-                </div>
-                <span className="font-medium text-slate-900">#{pedido.id}</span>
-              </td>
+          {pedidos.map((pedido) => {
+            const currentStatus = normalizeStatus(pedido.status || pedido.statusEnvio);
 
-              <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
-                {pedido.cliente || `Cliente #${pedido.usuarioId}`}
-              </td>
+            return (
+              <tr key={pedido.id} className="hover:bg-slate-50/50 transition-colors">
+                {/* Pedido */}
+                <td className="py-3 px-4 flex items-center gap-3 whitespace-nowrap">
+                  <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 shrink-0">
+                    <BoxIcon className="w-5 h-5" />
+                  </div>
+                  <span className="font-medium text-slate-900">#{pedido.id}</span>
+                </td>
 
-              {/* Endereço de Entrega (endereco_id) */}
-              <td className="py-3 px-4 text-gray-600 whitespace-nowrap max-w-xs truncate" title={pedido.endereco?.texto || pedido.endereco?.logradouro || ''}>
-                {pedido.endereco?.texto ?? pedido.endereco?.logradouro ?? `Endereço #${pedido.enderecoId}`}
-              </td>
+                <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
+                  {pedido.cliente || `Cliente #${pedido.usuarioId}`}
+                </td>
 
-              {/* Valor Total */}
-              <td className="py-3 px-4 font-medium text-slate-900 whitespace-nowrap">
-                {Number(pedido.valorTotal || 0).toLocaleString('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                })}
-              </td>
+                {/* Endereço de Entrega (endereco_id) */}
+                <td className="py-3 px-4 text-gray-600 whitespace-nowrap max-w-xs truncate" title={pedido.endereco?.texto || pedido.endereco?.logradouro || ''}>
+                  {pedido.endereco?.texto ?? pedido.endereco?.logradouro ?? `Endereço #${pedido.enderecoId}`}
+                </td>
 
-              {/* Data do Pedido */}
-              <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
-                {new Date(pedido.dataPedido).toLocaleString('pt-BR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </td>
+                {/* Valor Total */}
+                <td className="py-3 px-4 font-medium text-slate-900 whitespace-nowrap">
+                  {Number(pedido.valorTotal || 0).toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })}
+                </td>
 
-              {/* Status Compra */}
-              <td className="py-3 px-4 whitespace-nowrap">
-                <span
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusCompraStyles[pedido.statusCompra as PedidoCompraStatus] ??
-                    'bg-slate-50 text-slate-700 border border-slate-200'
+                {/* Data do Pedido */}
+                <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
+                  {new Date(pedido.dataPedido).toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </td>
+
+                {/* Status Compra */}
+                <td className="py-3 px-4 whitespace-nowrap">
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusCompraStyles[pedido.statusCompra as PedidoCompraStatus] ??
+                      'bg-slate-50 text-slate-700 border border-slate-200'
+                      }`}
+                  >
+                    {pedido.statusCompra}
+                  </span>
+                </td>
+
+                {/* Status Envio (Badge) */}
+                <td className="py-3 px-4 whitespace-nowrap">
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      statusEnvioStyles[pedido.statusEnvio as PedidoEnvioStatus] ??
+                      statusEnvioStyles[currentStatus] ??
+                      'bg-slate-50 text-slate-700 border border-slate-200'
                     }`}
-                >
-                  {pedido.statusCompra}
-                </span>
-              </td>
+                  >
+                    {pedido.statusEnvio}
+                  </span>
+                </td>
 
-              {/* Status Envio */}
-              <td className="py-3 px-4 whitespace-nowrap">
-                <span
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusEnvioStyles[pedido.statusEnvio as PedidoEnvioStatus] ??
-                    'bg-slate-50 text-slate-700 border border-slate-200'
-                    }`}
-                >
-                  {pedido.statusEnvio}
-                </span>
-              </td>
-
-              {/* Ações */}
-              <td className="py-3 px-4 text-center whitespace-nowrap">
-                <div className="flex items-center justify-center gap-2">
-                  {editLoading && editingId === pedido.id ? (
-                    <div className="w-5 h-5 flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent" />
-                    </div>
-                  ) : (
-                    <EditButton onClick={() => onEdit(pedido.id)} />
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
+                {/* Ações */}
+                <td className="py-3 px-4 text-center whitespace-nowrap">
+                  <div className="flex items-center justify-center gap-2">
+                    {editLoading && editingId === pedido.id ? (
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent" />
+                      </div>
+                    ) : (
+                      <EditButton onClick={() => onEdit(pedido.id)} />
+                    )}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

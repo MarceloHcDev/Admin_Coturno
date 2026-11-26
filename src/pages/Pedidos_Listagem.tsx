@@ -4,9 +4,10 @@ import Sidebar from '../components/organisms/Sidebar';
 import PageHeader from '../components/molecules/PageHeader';
 import SearchInput from '../components/atoms/SearchInput';
 import PedidoTable from '../components/organisms/PedidoTable';
-import { Pedido, PedidoEnvioStatus, PedidoFilters } from '../types/order';
+import { Pedido } from '../types/order';
 import { pedidosService } from '../services/pedidos.service';
 import { usePedidos } from '@/hooks/usePedidos';
+import { notifyOrderUpdate } from '../utils/orderSync';
 
 export interface PedidoFormData extends Omit<Pedido, 'valorTotal' | 'subtotal' | 'frete'> {
   valorTotal: number | string;
@@ -178,10 +179,23 @@ export default function Pedidos_Listagem(): React.JSX.Element {
     if (editingId !== null) {
       setSaving(true);
       try {
-        await pedidosService.atualizarStatus(editingId, formData.status);
+        const updated: any = await pedidosService.atualizarStatus(editingId, formData.status);
+        const orderNumber = updated?.order_number || updated?.orderNumber || (formData as any)?.orderNumber;
+        notifyOrderUpdate({ orderId: editingId, status: formData.status });
+        if (orderNumber) {
+          notifyOrderUpdate({ orderId: orderNumber, status: formData.status });
+        }
         await refetch();
-      } catch (e) {
+      } catch (e: any) {
         console.error('Erro ao atualizar status', e);
+        if (e?.response?.status === 401) {
+          alert('Sua sessão de administrador expirou. Por favor, faça login novamente.');
+          localStorage.removeItem('admin_token');
+          localStorage.removeItem('admin_token_expires_at');
+          window.location.href = '/login?session_expired=1';
+        } else {
+          alert(e?.response?.data?.message || e?.message || 'Erro ao atualizar status do pedido.');
+        }
       } finally {
         setSaving(false);
       }
@@ -518,7 +532,28 @@ export default function Pedidos_Listagem(): React.JSX.Element {
 
           {/* Estados de carregamento / erro */}
           {loading && <p className="text-center text-gray-600 py-4">Carregando pedidos…</p>}
-          {error && <p className="text-center text-red-600 py-4">{error}</p>}
+          {error && (
+            <div className="p-4 my-2 bg-red-50 border border-red-200 rounded-xl text-center space-y-2">
+              <p className="text-sm font-semibold text-red-700">
+                {String(error).includes('401')
+                  ? 'Sua sessão administrativa expirou (401). Faça login novamente para continuar.'
+                  : error}
+              </p>
+              {String(error).includes('401') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem('admin_token');
+                    localStorage.removeItem('admin_token_expires_at');
+                    window.location.href = '/login?session_expired=1';
+                  }}
+                  className="px-4 py-1.5 bg-red-600 text-white rounded text-xs font-bold uppercase tracking-wider hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                  Fazer Login Novamente
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Tabela de Pedidos */}
           {!loading && filteredPedidos.length > 0 && (

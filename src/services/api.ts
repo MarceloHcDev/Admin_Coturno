@@ -43,7 +43,11 @@ export const api = axios.create({
 
 // Adiciona o token automaticamente em todas as requisições.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token =
+    localStorage.getItem(TOKEN_KEY) ||
+    localStorage.getItem("admin_token") ||
+    localStorage.getItem("token") ||
+    localStorage.getItem("auth_token");
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -51,6 +55,17 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+// Interceptor de resposta para tratar sessões expiradas
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.warn("Sessão administrativa expirada ou não autenticada (401).");
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const authStorage = {
   getToken: () => localStorage.getItem(TOKEN_KEY),

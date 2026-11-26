@@ -24,7 +24,7 @@ export const PedidoTableHeader: React.FC = () => {
           Status da Compra
         </th>
         <th scope="col" className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-          Status da Envio
+          Status de Envio
         </th>
         <th scope="col" className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
           Detalhes/Ações

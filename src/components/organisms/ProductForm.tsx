@@ -52,7 +52,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   selectedFiles,
   existingImages = [],
   topMarcas = [],
-  topTipos = [],
+  topTipos: _topTipos = [],
   onFileChange,
   onRemoveFile,
   onRemoveExistingImage,

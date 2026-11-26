@@ -28,10 +28,20 @@ export const pedidosService = {
 
   /** Atualiza o status logístico do pedido (endpoint PATCH admin). */
   atualizarStatus: async (id: string | number, novoStatus: string) => {
-    const response = await api.patch<{ data: Pedido }>(`/admin/pedidos/${id}/status`, {
-      status: novoStatus,
-    });
-    return response.data.data;
+    try {
+      const response = await api.patch<{ data: Pedido }>(`/admin/pedidos/${id}/status`, {
+        status: novoStatus,
+      });
+      return response.data.data;
+    } catch (err: any) {
+      if (err.response?.status === 404 || err.response?.status === 405) {
+        const response = await api.put<{ data: Pedido }>(`/pedidos/${id}`, {
+          status: novoStatus,
+        });
+        return response.data.data;
+      }
+      throw err;
+    }
   },
 
   /** Cancelamento de pedido (regra de negócio implementada no backend). */
