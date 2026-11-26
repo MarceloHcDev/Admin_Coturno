@@ -62,7 +62,7 @@ export function TopProductsSection({
             ) : (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={3}
                   className="py-8 text-center text-slate-400"
                 >
                   Nenhum produto disponível.

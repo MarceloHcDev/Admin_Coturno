@@ -11,6 +11,10 @@ export interface PedidoTableProps {
   onEdit: (id: string | number) => void;
   /** Callback opcional acionado ao clicar no botão de exclusão/cancelamento */
   onDelete?: (id: string | number) => void;
+  /** Id do pedido sendo carregado no momento */
+  editingId?: string | number | null;
+  /** Indicador de loading na ação de editar */
+  editLoading?: boolean;
 }
 
 const statusCompraStyles: Record<PedidoCompraStatus, string> = {
@@ -30,10 +34,11 @@ const statusEnvioStyles: Record<PedidoEnvioStatus, string> = {
   Cancelado: 'bg-rose-50 text-rose-700 border border-rose-200',
 };
 
-
 export const PedidoTable: React.FC<PedidoTableProps> = ({
   pedidos,
   onEdit,
+  editingId,
+  editLoading,
 }) => {
   return (
     <div className="w-full min-w-0 overflow-x-auto bg-white border border-slate-300 rounded-xl shadow-sm">
@@ -48,11 +53,6 @@ export const PedidoTable: React.FC<PedidoTableProps> = ({
                   <BoxIcon className="w-5 h-5" />
                 </div>
                 <span className="font-medium text-slate-900">#{pedido.id}</span>
-              </td>
-
-              {/* Cliente (usuario_id) */}
-              <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
-                Cliente #{pedido.usuarioId}
               </td>
 
               <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
@@ -83,19 +83,23 @@ export const PedidoTable: React.FC<PedidoTableProps> = ({
                 })}
               </td>
 
-              {/* Status */}
+              {/* Status Compra */}
               <td className="py-3 px-4 whitespace-nowrap">
                 <span
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusCompraStyles[pedido.statusCompra as PedidoCompraStatus] ?? 'bg-slate-50 text-slate-700 border border-slate-200'}`}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusCompraStyles[pedido.statusCompra as PedidoCompraStatus] ??
+                    'bg-slate-50 text-slate-700 border border-slate-200'
+                    }`}
                 >
                   {pedido.statusCompra}
                 </span>
               </td>
 
-              {/* Status */}
+              {/* Status Envio */}
               <td className="py-3 px-4 whitespace-nowrap">
                 <span
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusEnvioStyles[pedido.statusEnvio as PedidoEnvioStatus] ?? 'bg-slate-50 text-slate-700 border border-slate-200'}`}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusEnvioStyles[pedido.statusEnvio as PedidoEnvioStatus] ??
+                    'bg-slate-50 text-slate-700 border border-slate-200'
+                    }`}
                 >
                   {pedido.statusEnvio}
                 </span>
@@ -104,7 +108,13 @@ export const PedidoTable: React.FC<PedidoTableProps> = ({
               {/* Ações */}
               <td className="py-3 px-4 text-center whitespace-nowrap">
                 <div className="flex items-center justify-center gap-2">
-                  <EditButton onClick={() => onEdit(pedido.id)} />
+                  {editLoading && editingId === pedido.id ? (
+                    <div className="w-5 h-5 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent" />
+                    </div>
+                  ) : (
+                    <EditButton onClick={() => onEdit(pedido.id)} />
+                  )}
                 </div>
               </td>
             </tr>
@@ -116,3 +126,4 @@ export const PedidoTable: React.FC<PedidoTableProps> = ({
 };
 
 export default PedidoTable;
+
