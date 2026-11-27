@@ -1,5 +1,5 @@
 // src/components/organisms/StoreImagesForm.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ImageUploadInput, ImageVariant } from "../atoms/ImageUploadInput";
 import { api } from "../../services/api";
 
