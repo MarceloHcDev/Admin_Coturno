@@ -82,7 +82,7 @@ export function useProdutosCatalogo() {
   const carregarProdutos = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/produtos");
+      const response = await api.get("/produtos?include_inactive=1");
       const listaApi = response.data?.data || [];
 
       const backendBase = (
