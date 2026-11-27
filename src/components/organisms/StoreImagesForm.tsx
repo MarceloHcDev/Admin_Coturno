@@ -16,8 +16,8 @@ export type StoreImageSlotKey =
   | "promo_2_mobile"
   | "promo_3_desktop"
   | "promo_3_mobile"
-  | "category_1"
-  | "category_2";
+  | "colecao_1"
+  | "colecao_2";
 
 export interface StoreImageSlotConfig {
   key: StoreImageSlotKey;
@@ -162,32 +162,32 @@ export const PROMO_SLIDES: CarouselSlideGroup[] = [
 ];
 
 export const CATEGORY_SLOTS: Record<
-  "category_1" | "category_2",
+  "colecao_1" | "colecao_2",
   StoreImageSlotConfig
 > = {
-  category_1: {
-    key: "category_1",
-    label: "Anexo da Imagem de Destaque 1",
+  colecao_1: {
+    key: "colecao_1",
+    label: "Coleção 1",
     variant: "single",
     recommendedSize: "800x800px",
-    cloudinaryFolder: "store/categories",
-    cloudinaryPublicId: "category_1",
+    cloudinaryFolder: "store/colecoes",
+    cloudinaryPublicId: "colecao_1",
   },
-  category_2: {
-    key: "category_2",
-    label: "Anexo da Imagem de Destaque 2",
+  colecao_2: {
+    key: "colecao_2",
+    label: "Coleção 2",
     variant: "single",
     recommendedSize: "800x800px",
-    cloudinaryFolder: "store/categories",
-    cloudinaryPublicId: "category_2",
+    cloudinaryFolder: "store/colecoes",
+    cloudinaryPublicId: "colecao_2",
   },
 };
 
 const ALL_SLOTS: StoreImageSlotConfig[] = [
   ...HERO_SLIDES.flatMap((s) => [s.desktop, s.mobile]),
   ...PROMO_SLIDES.flatMap((s) => [s.desktop, s.mobile]),
-  CATEGORY_SLOTS.category_1,
-  CATEGORY_SLOTS.category_2,
+  CATEGORY_SLOTS.colecao_1,
+  CATEGORY_SLOTS.colecao_2,
 ];
 
 export const StoreImagesForm: React.FC = () => {
@@ -395,11 +395,11 @@ export const StoreImagesForm: React.FC = () => {
         <div className="space-y-4">{PROMO_SLIDES.map(renderSlideGroup)}</div>
       </section>
 
-      {/* Seção 3: Card Destaque de Categorias 1 */}
+      {/* Seção 3: Coleção 1 */}
       <section className="border-b border-gray-200 pb-6 space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-1">
-            3. Card Destaque de Categorias 1
+            3. Coleção 1
           </h2>
           <p className="text-sm text-gray-500">
             Primeira imagem ilustrativa de coleção em destaque na página
@@ -407,34 +407,34 @@ export const StoreImagesForm: React.FC = () => {
           </p>
         </div>
         <ImageUploadInput
-          id={CATEGORY_SLOTS.category_1.key}
-          label={CATEGORY_SLOTS.category_1.label}
-          variant={CATEGORY_SLOTS.category_1.variant}
-          recommendedSize={CATEGORY_SLOTS.category_1.recommendedSize}
-          cloudinaryPublicId={`${CATEGORY_SLOTS.category_1.cloudinaryFolder}/${CATEGORY_SLOTS.category_1.cloudinaryPublicId}`}
-          currentImageUrl={uploadedUrls.category_1}
-          onImageChange={(file) => handleFileChange("category_1", file)}
+          id={CATEGORY_SLOTS.colecao_1.key}
+          label={CATEGORY_SLOTS.colecao_1.label}
+          variant={CATEGORY_SLOTS.colecao_1.variant}
+          recommendedSize={CATEGORY_SLOTS.colecao_1.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.colecao_1.cloudinaryFolder}/${CATEGORY_SLOTS.colecao_1.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.colecao_1}
+          onImageChange={(file) => handleFileChange("colecao_1", file)}
         />
       </section>
 
-      {/* Seção 4: Card Destaque de Categorias 2 */}
+      {/* Seção 4: Coleção 2 */}
       <section className="pb-2 space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-1">
-            4. Card Destaque de Categorias 2
+            4. Coleção 2
           </h2>
           <p className="text-sm text-gray-500">
             Segunda imagem ilustrativa de coleção em destaque na página inicial.
           </p>
         </div>
         <ImageUploadInput
-          id={CATEGORY_SLOTS.category_2.key}
-          label={CATEGORY_SLOTS.category_2.label}
-          variant={CATEGORY_SLOTS.category_2.variant}
-          recommendedSize={CATEGORY_SLOTS.category_2.recommendedSize}
-          cloudinaryPublicId={`${CATEGORY_SLOTS.category_2.cloudinaryFolder}/${CATEGORY_SLOTS.category_2.cloudinaryPublicId}`}
-          currentImageUrl={uploadedUrls.category_2}
-          onImageChange={(file) => handleFileChange("category_2", file)}
+          id={CATEGORY_SLOTS.colecao_2.key}
+          label={CATEGORY_SLOTS.colecao_2.label}
+          variant={CATEGORY_SLOTS.colecao_2.variant}
+          recommendedSize={CATEGORY_SLOTS.colecao_2.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.colecao_2.cloudinaryFolder}/${CATEGORY_SLOTS.colecao_2.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.colecao_2}
+          onImageChange={(file) => handleFileChange("colecao_2", file)}
         />
       </section>
 
