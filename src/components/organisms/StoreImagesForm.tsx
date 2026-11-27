@@ -17,7 +17,9 @@ export type StoreImageSlotKey =
   | "promo_3_desktop"
   | "promo_3_mobile"
   | "colecao_1"
-  | "colecao_2";
+  | "colecao_2"
+  | "destaque_basicos"
+  | "destaque_elite";
 
 export interface StoreImageSlotConfig {
   key: StoreImageSlotKey;
@@ -162,7 +164,7 @@ export const PROMO_SLIDES: CarouselSlideGroup[] = [
 ];
 
 export const CATEGORY_SLOTS: Record<
-  "colecao_1" | "colecao_2",
+  "colecao_1" | "colecao_2" | "destaque_basicos" | "destaque_elite",
   StoreImageSlotConfig
 > = {
   colecao_1: {
@@ -181,6 +183,22 @@ export const CATEGORY_SLOTS: Record<
     cloudinaryFolder: "store/colecoes",
     cloudinaryPublicId: "colecao_2",
   },
+  destaque_basicos: {
+    key: "destaque_basicos",
+    label: "Banner Básicos Indispensáveis",
+    variant: "single",
+    recommendedSize: "600x800px",
+    cloudinaryFolder: "store/destaques",
+    cloudinaryPublicId: "destaque_basicos",
+  },
+  destaque_elite: {
+    key: "destaque_elite",
+    label: "Banner Nossa Linha Elite",
+    variant: "single",
+    recommendedSize: "600x800px",
+    cloudinaryFolder: "store/destaques",
+    cloudinaryPublicId: "destaque_elite",
+  },
 };
 
 const ALL_SLOTS: StoreImageSlotConfig[] = [
@@ -188,6 +206,8 @@ const ALL_SLOTS: StoreImageSlotConfig[] = [
   ...PROMO_SLIDES.flatMap((s) => [s.desktop, s.mobile]),
   CATEGORY_SLOTS.colecao_1,
   CATEGORY_SLOTS.colecao_2,
+  CATEGORY_SLOTS.destaque_basicos,
+  CATEGORY_SLOTS.destaque_elite,
 ];
 
 export const StoreImagesForm: React.FC = () => {
@@ -418,7 +438,7 @@ export const StoreImagesForm: React.FC = () => {
       </section>
 
       {/* Seção 4: Coleção 2 */}
-      <section className="pb-2 space-y-4">
+      <section className="border-b border-gray-200 pb-6 space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-1">
             4. Coleção 2
@@ -435,6 +455,48 @@ export const StoreImagesForm: React.FC = () => {
           cloudinaryPublicId={`${CATEGORY_SLOTS.colecao_2.cloudinaryFolder}/${CATEGORY_SLOTS.colecao_2.cloudinaryPublicId}`}
           currentImageUrl={uploadedUrls.colecao_2}
           onImageChange={(file) => handleFileChange("colecao_2", file)}
+        />
+      </section>
+
+      {/* Seção 5: Banner Básicos Indispensáveis */}
+      <section className="border-b border-gray-200 pb-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            5. Banner Básicos Indispensáveis
+          </h2>
+          <p className="text-sm text-gray-500">
+            Banner vertical lateral da vitrine de Básicos Indispensáveis.
+          </p>
+        </div>
+        <ImageUploadInput
+          id={CATEGORY_SLOTS.destaque_basicos.key}
+          label={CATEGORY_SLOTS.destaque_basicos.label}
+          variant={CATEGORY_SLOTS.destaque_basicos.variant}
+          recommendedSize={CATEGORY_SLOTS.destaque_basicos.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.destaque_basicos.cloudinaryFolder}/${CATEGORY_SLOTS.destaque_basicos.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.destaque_basicos}
+          onImageChange={(file) => handleFileChange("destaque_basicos", file)}
+        />
+      </section>
+
+      {/* Seção 6: Banner Nossa Linha Elite */}
+      <section className="pb-2 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            6. Banner Nossa Linha Elite
+          </h2>
+          <p className="text-sm text-gray-500">
+            Banner vertical lateral da vitrine da Linha Elite.
+          </p>
+        </div>
+        <ImageUploadInput
+          id={CATEGORY_SLOTS.destaque_elite.key}
+          label={CATEGORY_SLOTS.destaque_elite.label}
+          variant={CATEGORY_SLOTS.destaque_elite.variant}
+          recommendedSize={CATEGORY_SLOTS.destaque_elite.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.destaque_elite.cloudinaryFolder}/${CATEGORY_SLOTS.destaque_elite.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.destaque_elite}
+          onImageChange={(file) => handleFileChange("destaque_elite", file)}
         />
       </section>
 
