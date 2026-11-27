@@ -203,6 +203,36 @@ export const StoreImagesForm: React.FC = () => {
     text: string;
   } | null>(null);
 
+  // Carrega as imagens atuais salvas no banco ao abrir a página
+  useEffect(() => {
+    let active = true;
+
+    const fetchCurrentStoreImages = async () => {
+      try {
+        const response = await api.get("/store-images");
+        const data = response.data?.data;
+
+        if (active && data && typeof data === "object") {
+          const urlsMap: Partial<Record<StoreImageSlotKey, string>> = {};
+          Object.keys(data).forEach((slotKey) => {
+            if (data[slotKey]?.image_url) {
+              urlsMap[slotKey as StoreImageSlotKey] = data[slotKey].image_url;
+            }
+          });
+          setUploadedUrls(urlsMap);
+        }
+      } catch (err) {
+        console.error("Não foi possível carregar as imagens prévias da loja:", err);
+      }
+    };
+
+    fetchCurrentStoreImages();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleFileChange = (key: StoreImageSlotKey, file: File | null) => {
     setSelectedFiles((prev) => ({
       ...prev,
