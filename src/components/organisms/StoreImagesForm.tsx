@@ -1,5 +1,5 @@
 // src/components/organisms/StoreImagesForm.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ImageUploadInput, ImageVariant } from "../atoms/ImageUploadInput";
 import { api } from "../../services/api";
 
@@ -16,8 +16,10 @@ export type StoreImageSlotKey =
   | "promo_2_mobile"
   | "promo_3_desktop"
   | "promo_3_mobile"
-  | "category_1"
-  | "category_2";
+  | "colecao_1"
+  | "colecao_2"
+  | "destaque_basicos"
+  | "destaque_elite";
 
 export interface StoreImageSlotConfig {
   key: StoreImageSlotKey;
@@ -162,32 +164,50 @@ export const PROMO_SLIDES: CarouselSlideGroup[] = [
 ];
 
 export const CATEGORY_SLOTS: Record<
-  "category_1" | "category_2",
+  "colecao_1" | "colecao_2" | "destaque_basicos" | "destaque_elite",
   StoreImageSlotConfig
 > = {
-  category_1: {
-    key: "category_1",
-    label: "Anexo da Imagem de Destaque 1",
+  colecao_1: {
+    key: "colecao_1",
+    label: "Coleção 1",
     variant: "single",
     recommendedSize: "800x800px",
-    cloudinaryFolder: "store/categories",
-    cloudinaryPublicId: "category_1",
+    cloudinaryFolder: "store/colecoes",
+    cloudinaryPublicId: "colecao_1",
   },
-  category_2: {
-    key: "category_2",
-    label: "Anexo da Imagem de Destaque 2",
+  colecao_2: {
+    key: "colecao_2",
+    label: "Coleção 2",
     variant: "single",
     recommendedSize: "800x800px",
-    cloudinaryFolder: "store/categories",
-    cloudinaryPublicId: "category_2",
+    cloudinaryFolder: "store/colecoes",
+    cloudinaryPublicId: "colecao_2",
+  },
+  destaque_basicos: {
+    key: "destaque_basicos",
+    label: "Banner Básicos Indispensáveis",
+    variant: "single",
+    recommendedSize: "600x800px",
+    cloudinaryFolder: "store/destaques",
+    cloudinaryPublicId: "destaque_basicos",
+  },
+  destaque_elite: {
+    key: "destaque_elite",
+    label: "Banner Nossa Linha Elite",
+    variant: "single",
+    recommendedSize: "600x800px",
+    cloudinaryFolder: "store/destaques",
+    cloudinaryPublicId: "destaque_elite",
   },
 };
 
 const ALL_SLOTS: StoreImageSlotConfig[] = [
   ...HERO_SLIDES.flatMap((s) => [s.desktop, s.mobile]),
   ...PROMO_SLIDES.flatMap((s) => [s.desktop, s.mobile]),
-  CATEGORY_SLOTS.category_1,
-  CATEGORY_SLOTS.category_2,
+  CATEGORY_SLOTS.colecao_1,
+  CATEGORY_SLOTS.colecao_2,
+  CATEGORY_SLOTS.destaque_basicos,
+  CATEGORY_SLOTS.destaque_elite,
 ];
 
 export const StoreImagesForm: React.FC = () => {
@@ -202,6 +222,36 @@ export const StoreImagesForm: React.FC = () => {
     type: "success" | "error";
     text: string;
   } | null>(null);
+
+  // Carrega as imagens atuais salvas no banco ao abrir a página
+  useEffect(() => {
+    let active = true;
+
+    const fetchCurrentStoreImages = async () => {
+      try {
+        const response = await api.get("/store-images");
+        const data = response.data?.data;
+
+        if (active && data && typeof data === "object") {
+          const urlsMap: Partial<Record<StoreImageSlotKey, string>> = {};
+          Object.keys(data).forEach((slotKey) => {
+            if (data[slotKey]?.image_url) {
+              urlsMap[slotKey as StoreImageSlotKey] = data[slotKey].image_url;
+            }
+          });
+          setUploadedUrls(urlsMap);
+        }
+      } catch (err) {
+        console.error("Não foi possível carregar as imagens prévias da loja:", err);
+      }
+    };
+
+    fetchCurrentStoreImages();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleFileChange = (key: StoreImageSlotKey, file: File | null) => {
     setSelectedFiles((prev) => ({
@@ -365,11 +415,11 @@ export const StoreImagesForm: React.FC = () => {
         <div className="space-y-4">{PROMO_SLIDES.map(renderSlideGroup)}</div>
       </section>
 
-      {/* Seção 3: Card Destaque de Categorias 1 */}
+      {/* Seção 3: Coleção 1 */}
       <section className="border-b border-gray-200 pb-6 space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-1">
-            3. Card Destaque de Categorias 1
+            3. Coleção 1
           </h2>
           <p className="text-sm text-gray-500">
             Primeira imagem ilustrativa de coleção em destaque na página
@@ -377,34 +427,76 @@ export const StoreImagesForm: React.FC = () => {
           </p>
         </div>
         <ImageUploadInput
-          id={CATEGORY_SLOTS.category_1.key}
-          label={CATEGORY_SLOTS.category_1.label}
-          variant={CATEGORY_SLOTS.category_1.variant}
-          recommendedSize={CATEGORY_SLOTS.category_1.recommendedSize}
-          cloudinaryPublicId={`${CATEGORY_SLOTS.category_1.cloudinaryFolder}/${CATEGORY_SLOTS.category_1.cloudinaryPublicId}`}
-          currentImageUrl={uploadedUrls.category_1}
-          onImageChange={(file) => handleFileChange("category_1", file)}
+          id={CATEGORY_SLOTS.colecao_1.key}
+          label={CATEGORY_SLOTS.colecao_1.label}
+          variant={CATEGORY_SLOTS.colecao_1.variant}
+          recommendedSize={CATEGORY_SLOTS.colecao_1.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.colecao_1.cloudinaryFolder}/${CATEGORY_SLOTS.colecao_1.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.colecao_1}
+          onImageChange={(file) => handleFileChange("colecao_1", file)}
         />
       </section>
 
-      {/* Seção 4: Card Destaque de Categorias 2 */}
-      <section className="pb-2 space-y-4">
+      {/* Seção 4: Coleção 2 */}
+      <section className="border-b border-gray-200 pb-6 space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-800 mb-1">
-            4. Card Destaque de Categorias 2
+            4. Coleção 2
           </h2>
           <p className="text-sm text-gray-500">
             Segunda imagem ilustrativa de coleção em destaque na página inicial.
           </p>
         </div>
         <ImageUploadInput
-          id={CATEGORY_SLOTS.category_2.key}
-          label={CATEGORY_SLOTS.category_2.label}
-          variant={CATEGORY_SLOTS.category_2.variant}
-          recommendedSize={CATEGORY_SLOTS.category_2.recommendedSize}
-          cloudinaryPublicId={`${CATEGORY_SLOTS.category_2.cloudinaryFolder}/${CATEGORY_SLOTS.category_2.cloudinaryPublicId}`}
-          currentImageUrl={uploadedUrls.category_2}
-          onImageChange={(file) => handleFileChange("category_2", file)}
+          id={CATEGORY_SLOTS.colecao_2.key}
+          label={CATEGORY_SLOTS.colecao_2.label}
+          variant={CATEGORY_SLOTS.colecao_2.variant}
+          recommendedSize={CATEGORY_SLOTS.colecao_2.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.colecao_2.cloudinaryFolder}/${CATEGORY_SLOTS.colecao_2.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.colecao_2}
+          onImageChange={(file) => handleFileChange("colecao_2", file)}
+        />
+      </section>
+
+      {/* Seção 5: Banner Básicos Indispensáveis */}
+      <section className="border-b border-gray-200 pb-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            5. Banner Básicos Indispensáveis
+          </h2>
+          <p className="text-sm text-gray-500">
+            Banner vertical lateral da vitrine de Básicos Indispensáveis.
+          </p>
+        </div>
+        <ImageUploadInput
+          id={CATEGORY_SLOTS.destaque_basicos.key}
+          label={CATEGORY_SLOTS.destaque_basicos.label}
+          variant={CATEGORY_SLOTS.destaque_basicos.variant}
+          recommendedSize={CATEGORY_SLOTS.destaque_basicos.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.destaque_basicos.cloudinaryFolder}/${CATEGORY_SLOTS.destaque_basicos.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.destaque_basicos}
+          onImageChange={(file) => handleFileChange("destaque_basicos", file)}
+        />
+      </section>
+
+      {/* Seção 6: Banner Nossa Linha Elite */}
+      <section className="pb-2 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            6. Banner Nossa Linha Elite
+          </h2>
+          <p className="text-sm text-gray-500">
+            Banner vertical lateral da vitrine da Linha Elite.
+          </p>
+        </div>
+        <ImageUploadInput
+          id={CATEGORY_SLOTS.destaque_elite.key}
+          label={CATEGORY_SLOTS.destaque_elite.label}
+          variant={CATEGORY_SLOTS.destaque_elite.variant}
+          recommendedSize={CATEGORY_SLOTS.destaque_elite.recommendedSize}
+          cloudinaryPublicId={`${CATEGORY_SLOTS.destaque_elite.cloudinaryFolder}/${CATEGORY_SLOTS.destaque_elite.cloudinaryPublicId}`}
+          currentImageUrl={uploadedUrls.destaque_elite}
+          onImageChange={(file) => handleFileChange("destaque_elite", file)}
         />
       </section>
 
